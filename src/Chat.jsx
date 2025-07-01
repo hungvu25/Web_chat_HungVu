@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
@@ -13,19 +14,20 @@ const DUMMY_MESSAGES = [
   { text: 'Hi! How are you?', sent: false, time: '10:01' },
 ];
 
-export default function Chat({ user, onLogout }) {
+export default function Chat({ user, loading, onLogout }) {
   const [selectedId, setSelectedId] = useState(DUMMY_CONVERSATIONS[0].id);
   const [search, setSearch] = useState('');
   const [input, setInput] = useState('');
   const conversations = DUMMY_CONVERSATIONS.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
   const recipient = conversations.find(c => c.id === selectedId);
   const [messages, setMessages] = useState(DUMMY_MESSAGES);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
-      window.location.href = '/login';
+    if (!loading && !user) {
+      navigate('/login');
     }
-  }, [user]);
+  }, [user, loading, navigate]);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -34,8 +36,7 @@ export default function Chat({ user, onLogout }) {
   };
 
   const handleProfile = () => {
-    // Navigate to profile page (implement with router)
-    window.location.href = '/profile';
+    navigate('/profile');
   };
 
   return (
