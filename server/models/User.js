@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   phone: { type: String },
   avatar: { type: String },
+  address: { type: String },
   dateOfBirth: { type: Date },
   joinDate: { type: Date, default: Date.now },
   lastSeen: { type: Date, default: Date.now },

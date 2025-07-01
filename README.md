@@ -4,7 +4,7 @@ This project is a modern web chat application built with Vite and React for the 
 
 ## Features
 - Real-time messaging with multiple users
-- Responsive and clean chat UI
+- Responsive UI for login, registration, profile and chat pages styled like modern messaging apps
 - Built with Vite + React
 - Ready for integration with a Node.js + Socket.IO backend
 

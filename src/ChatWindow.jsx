@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { DEFAULT_AVATAR } from './constants';
 
 export default function ChatWindow({ messages, onSend, input, setInput, recipient }) {
   const endRef = useRef(null);
@@ -7,7 +8,7 @@ export default function ChatWindow({ messages, onSend, input, setInput, recipien
   return (
     <section className="chat-window">
       <header className="chat-header">
-        <img className="chat-avatar" src={recipient?.avatar || '/default-avatar.png'} alt="avatar" />
+        <img className="chat-avatar" src={recipient?.avatar || DEFAULT_AVATAR} alt="avatar" />
         <div className="chat-title">{recipient?.name || 'Select a conversation'}</div>
         <span className={`chat-status${recipient?.online ? ' online' : ''}`}>{recipient?.online ? 'Online' : 'Offline'}</span>
       </header>
