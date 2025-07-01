@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
-export default function Login() {
+export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -25,6 +25,7 @@ export default function Login() {
       localStorage.setItem('token', data.token);
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
+        onLogin?.(data.user);
       }
       navigate('/chat');
     } catch (err) {
