@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_AVATAR } from './constants';
 
 export default function Sidebar({ conversations, selectedId, onSelect, onSearch, search }) {
   return (
@@ -16,7 +17,7 @@ export default function Sidebar({ conversations, selectedId, onSelect, onSearch,
             className={`sidebar-item${conv.id === selectedId ? ' selected' : ''}`}
             onClick={() => onSelect(conv.id)}
           >
-            <img className="sidebar-avatar" src={conv.avatar || '/default-avatar.png'} alt="avatar" />
+            <img className="sidebar-avatar" src={conv.avatar || DEFAULT_AVATAR} alt="avatar" />
             <div className="sidebar-info">
               <div className="sidebar-name">{conv.name}</div>
               <div className="sidebar-last">{conv.lastMessage}</div>

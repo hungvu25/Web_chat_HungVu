@@ -15,12 +15,16 @@ mongoose.connect('mongodb+srv://hungvuwebchat:Hungvu07082005@cluster0.envzvlc.mo
 
 // Register
 export async function registerUser(req, res) {
-  const { firstName, lastName, email, password, phone, avatar, dateOfBirth } = req.body;
+  const { firstName, lastName, email, password, phone, avatar, dateOfBirth, address } = req.body;
   try {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ error: 'Email already in use' });
     const hashed = await bcrypt.hash(password, 10);
-    const user = new User({ firstName, lastName, email, password: hashed, phone, avatar, dateOfBirth });
+    let username;
+    do {
+      username = `${email.split('@')[0]}${Math.floor(10000 + Math.random() * 90000)}`;
+    } while (await User.findOne({ username }));
+    const user = new User({ firstName, lastName, email, username, password: hashed, phone, avatar, dateOfBirth, address });
     await user.save();
     res.status(201).json({ message: 'User registered' });
   } catch (err) {
@@ -38,6 +42,41 @@ export async function loginUser(req, res) {
     if (!match) return res.status(400).json({ error: 'Invalid credentials' });
     const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// Get current user's profile
+export async function getProfile(req, res) {
+  try {
+    const user = await User.findById(req.userId).lean();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// Update profile details
+export async function updateProfile(req, res) {
+  const { firstName, lastName, avatar, dateOfBirth, address, username } = req.body;
+  try {
+    if (username) {
+      const existing = await User.findOne({ username });
+      if (existing && existing._id.toString() !== req.userId) {
+        return res.status(400).json({ error: 'Username already taken' });
+      }
+    }
+    const update = { firstName, lastName, avatar, dateOfBirth, address };
+    if (username) update.username = username;
+    const updated = await User.findByIdAndUpdate(
+      req.userId,
+      update,
+      { new: true }
+    ).lean();
+    if (!updated) return res.status(404).json({ error: 'User not found' });
+    res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
