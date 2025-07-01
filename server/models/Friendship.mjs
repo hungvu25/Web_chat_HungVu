@@ -75,13 +75,24 @@ friendshipSchema.statics.sendRequest = async function(fromUserId, toUserId) {
 
 // Accept friend request
 friendshipSchema.statics.acceptRequest = async function(friendshipId) {
+  console.log(`📝 Attempting to accept friendship ${friendshipId}`);
   const friendship = await this.findById(friendshipId);
   if (!friendship) {
+    console.error(`❌ Friendship ${friendshipId} not found`);
     throw new Error('Friendship not found');
   }
   
+  console.log(`📝 Current friendship status: ${friendship.status}`);
+  
+  if (friendship.status === 'accepted') {
+    console.warn(`⚠️ Friendship ${friendshipId} already accepted`);
+    return friendship;
+  }
+  
   friendship.status = 'accepted';
-  return friendship.save();
+  const result = await friendship.save();
+  console.log(`✅ Friendship ${friendshipId} successfully accepted`);
+  return result;
 };
 
 // Decline friend request

@@ -24,6 +24,8 @@ export default function Chat({ user, loading, onLogout }) {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [_loadingMessages, setLoadingMessages] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   
   // Convert friends to conversations format
   const conversationsList = friends.filter(friend => 
@@ -48,11 +50,31 @@ export default function Chat({ user, loading, onLogout }) {
     }
   }, [user, loading, navigate]);
 
+  // Show/hide offline banner based on socket connection
+  useEffect(() => {
+    if (user && !socketConnected && !bannerDismissed) {
+      const timer = setTimeout(() => {
+        setShowOfflineBanner(true);
+      }, 10000); // Show banner after 10 seconds of being offline
+      return () => clearTimeout(timer);
+    } else {
+      setShowOfflineBanner(false);
+    }
+  }, [user, socketConnected, bannerDismissed]);
+
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    setShowOfflineBanner(false);
+  };
+
   // Polling mechanism for notifications when socket is not connected
   useEffect(() => {
     if (!user || socketConnected) return;
     
     console.log('🔄 Socket not connected, starting notification polling...');
+    let pollLogCount = 0;
+    const MAX_POLL_LOGS = 2; // Limit polling logs
+    
     const pollInterval = setInterval(async () => {
       try {
         const requests = await getFriendRequests();
@@ -70,15 +92,22 @@ export default function Chat({ user, loading, onLogout }) {
           const existingIds = prev.map(n => n.id);
           const truly_new = newNotifications.filter(n => !existingIds.includes(n.id));
           if (truly_new.length > 0) {
-            console.log('📨 Polling found new notifications:', truly_new);
+            // Only log first few polling results to prevent spam
+            if (pollLogCount < MAX_POLL_LOGS) {
+              console.log('📨 Polling found new notifications:', truly_new);
+              pollLogCount++;
+            }
             return [...truly_new, ...prev];
           }
           return prev;
         });
       } catch (error) {
-        console.error('❌ Error polling notifications:', error);
+        // Only log polling errors occasionally
+        if (pollLogCount < MAX_POLL_LOGS) {
+          console.error('❌ Error polling notifications:', error);
+        }
       }
-    }, 5000); // Poll every 5 seconds
+    }, 10000); // Reduce polling frequency to 10 seconds
     
     return () => clearInterval(pollInterval);
   }, [user, socketConnected]);
@@ -98,6 +127,7 @@ export default function Chat({ user, loading, onLogout }) {
       socket.on('connect', () => {
         console.log('✅ Socket connected successfully');
         setSocketConnected(true);
+        setBannerDismissed(false); // Reset banner when connected
       });
       
       socket.on('connect_error', (error) => {
@@ -340,13 +370,16 @@ export default function Chat({ user, loading, onLogout }) {
 
   const handleAcceptFriend = async (requestId) => {
     try {
+      console.log(`🤝 Accepting friend request: ${requestId}`);
       await acceptFriendRequest(requestId);
       // Remove notification and reload friends list
       setNotifications(prev => prev.filter(n => n.id !== requestId));
       loadFriendsAndNotifications(); // Reload to get updated friends list
+      console.log(`✅ Friend request ${requestId} accepted successfully`);
       alert('Friend request accepted!');
     } catch (error) {
-      alert(`Error: ${error.message}`);
+      console.error(`❌ Failed to accept friend request ${requestId}:`, error);
+      alert(`Error accepting friend request: ${error.message}`);
     }
   };
 
@@ -369,6 +402,12 @@ export default function Chat({ user, loading, onLogout }) {
 
   return (
     <div className="chat-layout">
+      {showOfflineBanner && (
+        <div className="offline-banner">
+          ⚠️ Connection to server lost. Notifications may be delayed.
+          <button onClick={dismissBanner} className="banner-dismiss">×</button>
+        </div>
+      )}
       <div className="chat-main">
         <Sidebar
           conversations={conversationsList}

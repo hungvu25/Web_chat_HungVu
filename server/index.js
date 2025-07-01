@@ -90,13 +90,22 @@ app.put('/api/friends/accept/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Friend request not found' });
     }
 
-    // Check if current user is the recipient of the request
-    const isRecipient = (friendship.requester.toString() !== req.user._id.toString()) &&
-                       ((friendship.user_id_1.toString() === req.user._id.toString()) ||
-                        (friendship.user_id_2.toString() === req.user._id.toString()));
+    // Check if current user is the recipient of the request (not the requester)
+    if (friendship.requester.toString() === req.user._id.toString()) {
+      return res.status(403).json({ message: 'You cannot accept your own friend request' });
+    }
     
-    if (!isRecipient) {
-      return res.status(403).json({ message: 'You can only accept requests sent to you' });
+    // Check if current user is one of the participants
+    const isParticipant = (friendship.user_id_1.toString() === req.user._id.toString()) ||
+                         (friendship.user_id_2.toString() === req.user._id.toString());
+    
+    if (!isParticipant) {
+      return res.status(403).json({ message: 'You are not authorized to accept this request' });
+    }
+    
+    // Check if already accepted
+    if (friendship.status === 'accepted') {
+      return res.status(400).json({ message: 'Friend request already accepted' });
     }
     
     await Friendship.acceptRequest(req.params.id);
@@ -186,19 +195,33 @@ app.get('/api/friends/requests', auth, async (req, res) => {
         { user_id_1: req.user._id, status: 'pending' },
         { user_id_2: req.user._id, status: 'pending' }
       ]
-    }).populate('user_id_1 user_id_2', 'username firstName avatar');
+    }).populate('user_id_1 user_id_2 requester', 'username firstName avatar');
+    
+    console.log(`📝 Raw friend requests found: ${friendRequests.length}`);
+    friendRequests.forEach(req => {
+      console.log(`📝 Request: ${req._id}, requester: ${req.requester._id}, user1: ${req.user_id_1._id}, user2: ${req.user_id_2._id}`);
+    });
     
     // Format the response to show who sent the request
-    const formattedRequests = friendRequests.map(request => ({
-      id: request._id,
-      sender: request.requester.toString() === req.user._id.toString() ? 
-        request.user_id_2 : request.user_id_1,
-      type: request.requester.toString() === req.user._id.toString() ? 
-        'sent' : 'received',
-      createdAt: request.createdAt
-    }));
+    const formattedRequests = friendRequests.map(request => {
+      const isRequester = request.requester._id.toString() === req.user._id.toString();
+      const sender = isRequester ? 
+        (request.user_id_1._id.toString() === req.user._id.toString() ? request.user_id_2 : request.user_id_1) :
+        request.requester;
+      
+      return {
+        _id: request._id, // Include _id for compatibility
+        id: request._id,
+        sender: sender,
+        requester: request.requester,
+        type: isRequester ? 'sent' : 'received',
+        createdAt: request.createdAt,
+        status: request.status
+      };
+    });
     
     console.log(`✅ Found ${formattedRequests.length} friend requests for ${req.user.username}`);
+    console.log(`📝 Formatted requests:`, formattedRequests.map(r => `${r.type}: ${r.sender.username}`));
     res.json(formattedRequests);
   } catch (error) {
     console.error('Error in GET /api/friends/requests:', error);

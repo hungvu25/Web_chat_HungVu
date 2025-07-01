@@ -33,14 +33,25 @@ export const acceptFriendRequest = async (requestId) => {
   const response = await fetch(`${API_BASE}/friends/accept/${requestId}`, {
     method: 'PUT',
     headers: {
+      'Content-Type': 'application/json',
       'Authorization': `Bearer ${getAuthToken()}`
     }
   });
   
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error('Invalid response from server');
+  }
   
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to accept friend request');
+    console.error('Accept friend request failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      data
+    });
+    throw new Error(data.message || `Server error: ${response.status}`);
   }
   
   return data;
