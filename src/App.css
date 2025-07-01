@@ -388,6 +388,32 @@
   margin: 0 auto;
 }
 
+.profile-card input[type="text"],
+.profile-card input[type="date"],
+.profile-card input[type="file"] {
+  padding: 0.6em 1em;
+  border: 1.5px solid #e0e7ff;
+  border-radius: 8px;
+  font-size: 1em;
+  background: #fff;
+}
+
+.profile-card button {
+  background: #eebbc3;
+  color: #232946;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5em 1.2em;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.profile-card button:hover {
+  background: #fff;
+  color: #232946;
+}
 .profile-name {
   margin: 0.5rem 0 0;
   font-size: 1.4rem;

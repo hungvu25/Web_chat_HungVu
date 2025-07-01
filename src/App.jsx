@@ -30,6 +30,8 @@ function App() {
         <Route path="/login" element={<Login onLogin={setUser} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/chat" element={<Chat user={user} onLogout={handleLogout} />} />
+
+        <Route path="/profile" element={<Profile user={user} onUpdate={setUser} />} />
         <Route path="/profile" element={<Profile user={user} />} />
         {/* Redirect unknown routes */}
         <Route path="*" element={<Navigate to="/login" replace />} />

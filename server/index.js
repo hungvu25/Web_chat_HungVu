@@ -4,7 +4,7 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { registerUser, loginUser } from './auth.js';
+import { registerUser, loginUser, auth, getProfile, updateProfile } from './auth.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -22,6 +22,9 @@ app.use(express.json());
 app.post('/api/register', registerUser);
 // User login
 app.post('/api/login', loginUser);
+// Profile routes
+app.get('/api/profile', auth, getProfile);
+app.put('/api/profile', auth, updateProfile);
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
