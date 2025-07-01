@@ -20,13 +20,11 @@ export async function registerUser(req, res) {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ error: 'Email already in use' });
     const hashed = await bcrypt.hash(password, 10);
-
     let username;
     do {
       username = `${email.split('@')[0]}${Math.floor(10000 + Math.random() * 90000)}`;
     } while (await User.findOne({ username }));
     const user = new User({ firstName, lastName, email, username, password: hashed, phone, avatar, dateOfBirth, address });
-
     await user.save();
     res.status(201).json({ message: 'User registered' });
   } catch (err) {
@@ -62,7 +60,6 @@ export async function getProfile(req, res) {
 
 // Update profile details
 export async function updateProfile(req, res) {
-
   const { firstName, lastName, avatar, dateOfBirth, address, username } = req.body;
   try {
     if (username) {
@@ -76,7 +73,6 @@ export async function updateProfile(req, res) {
     const updated = await User.findByIdAndUpdate(
       req.userId,
       update,
-
       { new: true }
     ).lean();
     if (!updated) return res.status(404).json({ error: 'User not found' });

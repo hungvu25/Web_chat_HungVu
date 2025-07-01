@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_AVATAR } from './constants';
-
-
 export default function Profile({ user, loading, onUpdate }) {
   const navigate = useNavigate();
   const [form, setForm] = useState({ firstName: '', lastName: '', username: '', address: '', dateOfBirth: '', avatar: '' });
@@ -17,18 +15,14 @@ export default function Profile({ user, loading, onUpdate }) {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         username: user.username || '',
-
         address: user.address || '',
         dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : '',
         avatar: user.avatar || ''
       });
     }
-
   }, [user, loading, navigate]);
 
   if (!user) return null;
-
-
   const handleChange = e => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
@@ -62,9 +56,7 @@ export default function Profile({ user, loading, onUpdate }) {
     e.preventDefault();
     setError('');
     try {
-
       setSaving(true);
-
       const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
@@ -80,10 +72,8 @@ export default function Profile({ user, loading, onUpdate }) {
       navigate('/chat');
     } catch (err) {
       setError(err.message);
-
     } finally {
       setSaving(false);
-
     }
   };
 

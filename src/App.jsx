@@ -33,7 +33,6 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/chat" element={<Chat user={user} loading={loading} onLogout={handleLogout} />} />
         <Route path="/profile" element={<Profile user={user} loading={loading} onUpdate={setUser} />} />
-
         {/* Redirect unknown routes */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
