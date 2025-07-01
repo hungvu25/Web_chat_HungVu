@@ -46,7 +46,22 @@ app.post('/api/friends/request', auth, async (req, res) => {
       return res.status(400).json({ message: 'Cannot send friend request to yourself' });
     }
     
-    await Friendship.sendRequest(req.user._id, targetUser._id);
+    const friendship = await Friendship.sendRequest(req.user._id, targetUser._id);
+    
+    // Emit real-time notification to the target user using room system
+    io.to(`user_${targetUser._id}`).emit('friend_request_received', {
+      id: friendship._id,
+      type: 'friend_request',
+      sender: {
+        _id: req.user._id,
+        username: req.user.username,
+        firstName: req.user.firstName,
+        avatar: req.user.avatar
+      },
+      createdAt: friendship.createdAt
+    });
+    console.log(`🔔 Real-time notification sent to ${targetUser.username}`);
+    
     console.log(`✅ Friend request sent: ${req.user.username} -> ${targetUser.username}`);
     res.json({ message: 'Friend request sent successfully' });
   } catch (error) {
@@ -78,6 +93,24 @@ app.put('/api/friends/accept/:id', auth, async (req, res) => {
     }
     
     await Friendship.acceptRequest(req.params.id);
+    
+    // Get the requester to notify them
+    const requesterId = friendship.requester.toString();
+    
+    // Emit real-time notification to the requester
+    io.to(`user_${requesterId}`).emit('friend_request_accepted', {
+      id: friendship._id,
+      type: 'friend_accepted',
+      sender: {
+        _id: req.user._id,
+        username: req.user.username,
+        firstName: req.user.firstName,
+        avatar: req.user.avatar
+      },
+      createdAt: new Date()
+    });
+    console.log(`🔔 Friend acceptance notification sent to requester`);
+    
     console.log(`✅ Friend request ${req.params.id} accepted by ${req.user.username}`);
     res.json({ message: 'Friend request accepted' });
   } catch (error) {

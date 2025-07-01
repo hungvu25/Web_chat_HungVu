@@ -83,11 +83,48 @@ export default function Chat({ user, loading, onLogout }) {
           }));
         }
       });
+
+      // Listen for friend requests
+      socket.on('friend_request_received', (data) => {
+        console.log('🔔 New friend request received:', data);
+        const notification = {
+          id: data.id,
+          type: 'friend_request',
+          sender: data.sender,
+          read: false,
+          createdAt: data.createdAt
+        };
+        setNotifications(prev => [notification, ...prev]);
+        
+        // Show alert for immediate feedback
+        alert(`${data.sender.username} sent you a friend request!`);
+      });
+
+      // Listen for friend request acceptances
+      socket.on('friend_request_accepted', (data) => {
+        console.log('🎉 Friend request accepted:', data);
+        const notification = {
+          id: data.id,
+          type: 'friend_accepted',
+          sender: data.sender,
+          read: false,
+          createdAt: data.createdAt
+        };
+        setNotifications(prev => [notification, ...prev]);
+        
+        // Reload friends list to include the new friend
+        loadFriendsAndNotifications();
+        
+        // Show alert for immediate feedback
+        alert(`${data.sender.username} accepted your friend request!`);
+      });
       
       // Cleanup on unmount
       return () => {
         socket.off('user_status_change');
         socket.off('new_message');
+        socket.off('friend_request_received');
+        socket.off('friend_request_accepted');
         socket.disconnect();
       };
     }
