@@ -44,12 +44,14 @@ export default function Login({ onLogin }) {
           value={email}
           onChange={e => setEmail(e.target.value)}
           autoFocus
+          style={{ color: 'black' }}
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={e => setPassword(e.target.value)}
+          style={{ color: 'black' }}
         />
         <button type="submit">Login</button>
         <div className="auth-links">

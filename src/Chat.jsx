@@ -49,6 +49,8 @@ export default function Chat({ user, loading, onLogout }) {
           onSelect={setSelectedId}
           onSearch={setSearch}
           search={search}
+          // Set input text color to black for Sidebar search input
+          inputStyle={{ color: 'black' }}
         />
         <ChatWindow
           messages={messages}
@@ -56,6 +58,8 @@ export default function Chat({ user, loading, onLogout }) {
           input={input}
           setInput={setInput}
           recipient={recipient}
+          // Set input text color to black for ChatWindow input
+          inputStyle={{ color: 'black' }}
         />
         {/* Optional right panel for future use */}
       </div>

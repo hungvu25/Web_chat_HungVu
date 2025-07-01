@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_AVATAR } from './constants';
-
 export default function Profile({ user, loading, onUpdate }) {
   const navigate = useNavigate();
   const [form, setForm] = useState({ firstName: '', lastName: '', username: '', address: '', dateOfBirth: '', avatar: '' });
@@ -24,7 +23,6 @@ export default function Profile({ user, loading, onUpdate }) {
   }, [user, loading, navigate]);
 
   if (!user) return null;
-
   const handleChange = e => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
