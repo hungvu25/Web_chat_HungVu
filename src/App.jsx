@@ -7,12 +7,14 @@ import Profile from './Profile';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+    setLoading(false);
   }, []);
 
   const handleLogout = () => {
@@ -29,10 +31,9 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login onLogin={setUser} />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/chat" element={<Chat user={user} onLogout={handleLogout} />} />
+        <Route path="/chat" element={<Chat user={user} loading={loading} onLogout={handleLogout} />} />
+        <Route path="/profile" element={<Profile user={user} loading={loading} onUpdate={setUser} />} />
 
-        <Route path="/profile" element={<Profile user={user} onUpdate={setUser} />} />
-        <Route path="/profile" element={<Profile user={user} />} />
         {/* Redirect unknown routes */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

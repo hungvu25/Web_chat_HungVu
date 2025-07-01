@@ -14,7 +14,7 @@ const DUMMY_MESSAGES = [
   { text: 'Hi! How are you?', sent: false, time: '10:01' },
 ];
 
-export default function Chat({ user, onLogout }) {
+export default function Chat({ user, loading, onLogout }) {
   const [selectedId, setSelectedId] = useState(DUMMY_CONVERSATIONS[0].id);
   const [search, setSearch] = useState('');
   const [input, setInput] = useState('');
@@ -24,10 +24,17 @@ export default function Chat({ user, onLogout }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+<<<<<<< 84ifm1-codex/cải-thiện-giao-diện-giống-messages
+    if (!loading && !user) {
+      navigate('/login');
+    }
+  }, [user, loading, navigate]);
+=======
     if (!user) {
       navigate('/login');
     }
   }, [user, navigate]);
+>>>>>>> main
 
   const handleSend = () => {
     if (!input.trim()) return;
