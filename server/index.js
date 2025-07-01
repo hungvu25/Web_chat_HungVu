@@ -49,7 +49,8 @@ app.post('/api/friends/request', auth, async (req, res) => {
     const friendship = await Friendship.sendRequest(req.user._id, targetUser._id);
     
     // Emit real-time notification to the target user using room system
-    io.to(`user_${targetUser._id}`).emit('friend_request_received', {
+    const roomName = `user_${targetUser._id}`;
+    const notificationData = {
       id: friendship._id,
       type: 'friend_request',
       sender: {
@@ -59,7 +60,13 @@ app.post('/api/friends/request', auth, async (req, res) => {
         avatar: req.user.avatar
       },
       createdAt: friendship.createdAt
-    });
+    };
+    
+    console.log(`🎯 Sending notification to room: ${roomName}`);
+    console.log(`📦 Notification data:`, notificationData);
+    console.log(`👥 Clients in room:`, io.sockets.adapter.rooms.get(roomName)?.size || 0);
+    
+    io.to(roomName).emit('friend_request_received', notificationData);
     console.log(`🔔 Real-time notification sent to ${targetUser.username}`);
     
     console.log(`✅ Friend request sent: ${req.user.username} -> ${targetUser.username}`);
@@ -356,7 +363,10 @@ io.on('connection', (socket) => {
   socket.on('user_connect', async (userId) => {
     try {
       socket.userId = userId;
-      socket.join(`user_${userId}`); // Join user-specific room
+      const roomName = `user_${userId}`;
+      socket.join(roomName); // Join user-specific room
+      console.log(`🏠 User ${userId} joined room: ${roomName}`);
+      console.log(`🏠 Socket ${socket.id} joined room: ${roomName}`);
       
       await User.findByIdAndUpdate(userId, { 
         online: true, 

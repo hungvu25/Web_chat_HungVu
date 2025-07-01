@@ -53,11 +53,27 @@ export default function Chat({ user, loading, onLogout }) {
       loadFriendsAndNotifications();
       
       // Connect to socket and set user online
+      console.log('🔌 Connecting to socket...', socket.io?.uri);
       socket.connect();
       socket.emit('user_connect', user._id);
+      console.log('👤 User connected:', user._id);
+      
+      // Debug connection status
+      socket.on('connect', () => {
+        console.log('✅ Socket connected successfully');
+      });
+      
+      socket.on('connect_error', (error) => {
+        console.error('❌ Socket connection error:', error);
+      });
+      
+      socket.on('disconnect', (reason) => {
+        console.log('🔌 Socket disconnected:', reason);
+      });
       
       // Listen for user status changes
       socket.on('user_status_change', (data) => {
+        console.log('👥 User status change:', data);
         setFriends(prevFriends => 
           prevFriends.map(friend => 
             friend._id === data.userId 
@@ -69,6 +85,7 @@ export default function Chat({ user, loading, onLogout }) {
 
       // Listen for new messages
       socket.on('new_message', (data) => {
+        console.log('💬 New message received:', data);
         // Only add message if it's from someone else (not from current user)
         if (data.sender._id !== user._id) {
           setMessagesData(prev => ({
@@ -87,6 +104,7 @@ export default function Chat({ user, loading, onLogout }) {
       // Listen for friend requests
       socket.on('friend_request_received', (data) => {
         console.log('🔔 New friend request received:', data);
+        console.log('🔔 Socket room should be:', `user_${user._id}`);
         const notification = {
           id: data.id,
           type: 'friend_request',
@@ -121,6 +139,10 @@ export default function Chat({ user, loading, onLogout }) {
       
       // Cleanup on unmount
       return () => {
+        console.log('🧹 Cleaning up socket listeners');
+        socket.off('connect');
+        socket.off('connect_error');
+        socket.off('disconnect');
         socket.off('user_status_change');
         socket.off('new_message');
         socket.off('friend_request_received');
