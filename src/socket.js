@@ -1,5 +1,5 @@
 // src/socket.js
 import { io } from 'socket.io-client';
+import { SOCKET_URL } from './constants.js';
 
-const URL = 'http://localhost:3001';
-export const socket = io(URL, { autoConnect: false });
+export const socket = io(SOCKET_URL, { autoConnect: false });

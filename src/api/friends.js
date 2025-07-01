@@ -1,5 +1,7 @@
 // API functions for friend management
-const API_BASE = 'http://localhost:3001/api';
+import { API_BASE_URL } from '../constants.js';
+
+const API_BASE = API_BASE_URL;
 
 // Get auth token from localStorage
 const getAuthToken = () => {

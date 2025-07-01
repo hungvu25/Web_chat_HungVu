@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { API_BASE_URL } from './constants.js';
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -33,7 +34,7 @@ export default function Register() {
     const err = validate();
     if (err) return setError(err);
     try {
-      const res = await fetch('/api/register', {
+      const res = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)

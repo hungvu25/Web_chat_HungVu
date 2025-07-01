@@ -1,6 +1,7 @@
 // API functions for messages and conversations
+import { API_BASE_URL } from '../constants.js';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = API_BASE_URL;
 
 // Get auth token from localStorage
 const getAuthToken = () => {
