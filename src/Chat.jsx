@@ -24,10 +24,17 @@ export default function Chat({ user, loading, onLogout }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+<<<<<<< 84ifm1-codex/cải-thiện-giao-diện-giống-messages
     if (!loading && !user) {
       navigate('/login');
     }
   }, [user, loading, navigate]);
+=======
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
+>>>>>>> main
 
   const handleSend = () => {
     if (!input.trim()) return;
