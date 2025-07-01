@@ -23,6 +23,7 @@ export default function Chat({ user, loading, onLogout }) {
   const [messagesData, setMessagesData] = useState({});
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [_loadingMessages, setLoadingMessages] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
   
   // Convert friends to conversations format
   const conversationsList = friends.filter(friend => 
@@ -47,6 +48,41 @@ export default function Chat({ user, loading, onLogout }) {
     }
   }, [user, loading, navigate]);
 
+  // Polling mechanism for notifications when socket is not connected
+  useEffect(() => {
+    if (!user || socketConnected) return;
+    
+    console.log('🔄 Socket not connected, starting notification polling...');
+    const pollInterval = setInterval(async () => {
+      try {
+        const requests = await getFriendRequests();
+        // Convert friend requests to notifications format
+        const newNotifications = requests.map(req => ({
+          id: req._id,
+          type: 'friend_request',
+          sender: req.requester,
+          read: false,
+          createdAt: req.createdAt
+        }));
+        
+        // Only update if there are new notifications
+        setNotifications(prev => {
+          const existingIds = prev.map(n => n.id);
+          const truly_new = newNotifications.filter(n => !existingIds.includes(n.id));
+          if (truly_new.length > 0) {
+            console.log('📨 Polling found new notifications:', truly_new);
+            return [...truly_new, ...prev];
+          }
+          return prev;
+        });
+      } catch (error) {
+        console.error('❌ Error polling notifications:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+    
+    return () => clearInterval(pollInterval);
+  }, [user, socketConnected]);
+
   // Load friends and notifications when component mounts
   useEffect(() => {
     if (user) {
@@ -61,14 +97,17 @@ export default function Chat({ user, loading, onLogout }) {
       // Debug connection status
       socket.on('connect', () => {
         console.log('✅ Socket connected successfully');
+        setSocketConnected(true);
       });
       
       socket.on('connect_error', (error) => {
         console.error('❌ Socket connection error:', error);
+        setSocketConnected(false);
       });
       
       socket.on('disconnect', (reason) => {
         console.log('🔌 Socket disconnected:', reason);
+        setSocketConnected(false);
       });
       
       // Listen for user status changes
