@@ -29,14 +29,12 @@ export const sendFriendRequest = async (username) => {
 };
 
 // Accept friend request
-export const acceptFriendRequest = async (senderId) => {
-  const response = await fetch(`${API_BASE}/friends/accept`, {
-    method: 'POST',
+export const acceptFriendRequest = async (requestId) => {
+  const response = await fetch(`${API_BASE}/friends/accept/${requestId}`, {
+    method: 'PUT',
     headers: {
-      'Content-Type': 'application/json',
       'Authorization': `Bearer ${getAuthToken()}`
-    },
-    body: JSON.stringify({ senderId })
+    }
   });
   
   const data = await response.json();
@@ -49,14 +47,12 @@ export const acceptFriendRequest = async (senderId) => {
 };
 
 // Reject friend request
-export const rejectFriendRequest = async (senderId) => {
-  const response = await fetch(`${API_BASE}/friends/reject`, {
-    method: 'POST',
+export const rejectFriendRequest = async (requestId) => {
+  const response = await fetch(`${API_BASE}/friends/decline/${requestId}`, {
+    method: 'PUT',
     headers: {
-      'Content-Type': 'application/json',
       'Authorization': `Bearer ${getAuthToken()}`
-    },
-    body: JSON.stringify({ senderId })
+    }
   });
   
   const data = await response.json();

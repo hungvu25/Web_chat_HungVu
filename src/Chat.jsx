@@ -240,11 +240,11 @@ export default function Chat({ user, loading, onLogout }) {
     }
   };
 
-  const handleAcceptFriend = async (senderId) => {
+  const handleAcceptFriend = async (requestId) => {
     try {
-      await acceptFriendRequest(senderId);
+      await acceptFriendRequest(requestId);
       // Remove notification and reload friends list
-      setNotifications(prev => prev.filter(n => n.sender._id !== senderId));
+      setNotifications(prev => prev.filter(n => n.id !== requestId));
       loadFriendsAndNotifications(); // Reload to get updated friends list
       alert('Friend request accepted!');
     } catch (error) {
@@ -252,11 +252,11 @@ export default function Chat({ user, loading, onLogout }) {
     }
   };
 
-  const handleRejectFriend = async (senderId) => {
+  const handleRejectFriend = async (requestId) => {
     try {
-      await rejectFriendRequest(senderId);
+      await rejectFriendRequest(requestId);
       // Remove notification
-      setNotifications(prev => prev.filter(n => n.sender._id !== senderId));
+      setNotifications(prev => prev.filter(n => n.id !== requestId));
       alert('Friend request rejected!');
     } catch (error) {
       alert(`Error: ${error.message}`);

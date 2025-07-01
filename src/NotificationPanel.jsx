@@ -59,7 +59,7 @@ export default function NotificationPanel({
                           <button 
                             className="accept-btn"
                             onClick={() => {
-                              onAcceptFriend(notification.sender._id);
+                              onAcceptFriend(notification.id);
                               onMarkAsRead(notification.id);
                             }}
                           >
@@ -68,7 +68,7 @@ export default function NotificationPanel({
                           <button 
                             className="reject-btn"
                             onClick={() => {
-                              onRejectFriend(notification.sender._id);
+                              onRejectFriend(notification.id);
                               onMarkAsRead(notification.id);
                             }}
                           >

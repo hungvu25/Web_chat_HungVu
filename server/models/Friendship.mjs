@@ -73,4 +73,25 @@ friendshipSchema.statics.sendRequest = async function(fromUserId, toUserId) {
   });
 };
 
+// Accept friend request
+friendshipSchema.statics.acceptRequest = async function(friendshipId) {
+  const friendship = await this.findById(friendshipId);
+  if (!friendship) {
+    throw new Error('Friendship not found');
+  }
+  
+  friendship.status = 'accepted';
+  return friendship.save();
+};
+
+// Decline friend request
+friendshipSchema.statics.declineRequest = async function(friendshipId) {
+  return this.findByIdAndDelete(friendshipId);
+};
+
+// Remove friend
+friendshipSchema.statics.removeFriend = async function(friendshipId) {
+  return this.findByIdAndDelete(friendshipId);
+};
+
 export default mongoose.model('Friendship', friendshipSchema);

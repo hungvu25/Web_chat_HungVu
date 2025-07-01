@@ -60,18 +60,25 @@ app.post('/api/friends/request', auth, async (req, res) => {
 
 // Accept friend request
 app.put('/api/friends/accept/:id', auth, async (req, res) => {
+  console.log(`✅ Accepting friend request ${req.params.id} by ${req.user.username}`);
   try {
     const friendship = await Friendship.findById(req.params.id);
     
     if (!friendship) {
       return res.status(404).json({ message: 'Friend request not found' });
     }
+
+    // Check if current user is the recipient of the request
+    const isRecipient = (friendship.requester.toString() !== req.user._id.toString()) &&
+                       ((friendship.user_id_1.toString() === req.user._id.toString()) ||
+                        (friendship.user_id_2.toString() === req.user._id.toString()));
     
-    if (friendship.user_id_2.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Unauthorized' });
+    if (!isRecipient) {
+      return res.status(403).json({ message: 'You can only accept requests sent to you' });
     }
     
     await Friendship.acceptRequest(req.params.id);
+    console.log(`✅ Friend request ${req.params.id} accepted by ${req.user.username}`);
     res.json({ message: 'Friend request accepted' });
   } catch (error) {
     console.error('Error in PUT /api/friends/accept:', error);
@@ -81,6 +88,7 @@ app.put('/api/friends/accept/:id', auth, async (req, res) => {
 
 // Decline friend request
 app.put('/api/friends/decline/:id', auth, async (req, res) => {
+  console.log(`❌ Declining friend request ${req.params.id} by ${req.user.username}`);
   try {
     const friendship = await Friendship.findById(req.params.id);
     
@@ -88,11 +96,17 @@ app.put('/api/friends/decline/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Friend request not found' });
     }
     
-    if (friendship.user_id_2.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Unauthorized' });
+    // Check if current user is the recipient of the request
+    const isRecipient = (friendship.requester.toString() !== req.user._id.toString()) &&
+                       ((friendship.user_id_1.toString() === req.user._id.toString()) ||
+                        (friendship.user_id_2.toString() === req.user._id.toString()));
+    
+    if (!isRecipient) {
+      return res.status(403).json({ message: 'You can only decline requests sent to you' });
     }
     
     await Friendship.declineRequest(req.params.id);
+    console.log(`❌ Friend request ${req.params.id} declined by ${req.user.username}`);
     res.json({ message: 'Friend request declined' });
   } catch (error) {
     console.error('Error in PUT /api/friends/decline:', error);
@@ -125,13 +139,27 @@ app.delete('/api/friends/:id', auth, async (req, res) => {
 
 // Get friend requests
 app.get('/api/friends/requests', auth, async (req, res) => {
+  console.log(`📋 Getting friend requests for: ${req.user.username}`);
   try {
-    const requests = await Friendship.find({
-      user_id_2: req.user._id,
-      status: 'pending'
-    }).populate('user_id_1', 'username firstName avatar');
+    const friendRequests = await Friendship.find({
+      $or: [
+        { user_id_1: req.user._id, status: 'pending' },
+        { user_id_2: req.user._id, status: 'pending' }
+      ]
+    }).populate('user_id_1 user_id_2', 'username firstName avatar');
     
-    res.json(requests);
+    // Format the response to show who sent the request
+    const formattedRequests = friendRequests.map(request => ({
+      id: request._id,
+      sender: request.requester.toString() === req.user._id.toString() ? 
+        request.user_id_2 : request.user_id_1,
+      type: request.requester.toString() === req.user._id.toString() ? 
+        'sent' : 'received',
+      createdAt: request.createdAt
+    }));
+    
+    console.log(`✅ Found ${formattedRequests.length} friend requests for ${req.user.username}`);
+    res.json(formattedRequests);
   } catch (error) {
     console.error('Error in GET /api/friends/requests:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
