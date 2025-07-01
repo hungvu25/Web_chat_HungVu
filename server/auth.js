@@ -1,21 +1,18 @@
 import mongoose from 'mongoose';
-import User from './models/User.js';
-import Conversation from './models/Conversation.js';
-import Message from './models/Message.js';
+import User from './models/User.mjs';
+import Conversation from './models/Conversation.mjs';
+import Message from './models/Message.mjs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = 'supersecretkey';
 
 // Connect to MongoDB
-mongoose.connect('mongodb+srv://hungvuwebchat:Hungvu07082005@cluster0.envzvlc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
+mongoose.connect('mongodb+srv://hungvuwebchat:Hungvu07082005@cluster0.envzvlc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
 
 // Register
 export async function registerUser(req, res) {
-  const { firstName, lastName, email, password, phone, avatar, dateOfBirth, address } = req.body;
+  const { firstName, lastName, gender, email, password, phone, avatar, dateOfBirth, address } = req.body;
   try {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ error: 'Email already in use' });
@@ -24,7 +21,7 @@ export async function registerUser(req, res) {
     do {
       username = `${email.split('@')[0]}${Math.floor(10000 + Math.random() * 90000)}`;
     } while (await User.findOne({ username }));
-    const user = new User({ firstName, lastName, email, username, password: hashed, phone, avatar, dateOfBirth, address });
+    const user = new User({ firstName, lastName, gender, email, username, password: hashed, phone, avatar, dateOfBirth, address });
     await user.save();
     res.status(201).json({ message: 'User registered' });
   } catch (err) {
@@ -40,6 +37,13 @@ export async function loginUser(req, res) {
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ error: 'Invalid credentials' });
+    
+    // Set user online when logging in
+    await User.findByIdAndUpdate(user._id, { 
+      online: true, 
+      lastSeen: new Date() 
+    });
+    
     const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user });
   } catch (err) {
@@ -83,15 +87,19 @@ export async function updateProfile(req, res) {
 }
 
 // Auth middleware
-export function auth(req, res, next) {
+export async function auth(req, res, next) {
   const header = req.headers['authorization'];
   if (!header) return res.status(401).json({ error: 'No token' });
   const token = header.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.userId = decoded.id;
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    req.user = user;
+    req.userId = user._id; // Add userId for backward compatibility
     next();
-  } catch {
+  } catch (error) {
+    console.error('Auth middleware error:', error);
     res.status(401).json({ error: 'Invalid token' });
   }
 }

@@ -81,12 +81,12 @@ export default function Profile({ user, loading, onUpdate }) {
     <div className="profile-container">
       <form className="profile-card" onSubmit={handleSubmit}>
         <img className="profile-avatar" src={form.avatar || DEFAULT_AVATAR} alt="avatar" />
-        <input type="file" accept="image/*" onChange={handleAvatarUpload} />
-        <input name="firstName" placeholder="First name" value={form.firstName} onChange={handleChange} />
-        <input name="lastName" placeholder="Last name" value={form.lastName} onChange={handleChange} />
-        <input name="username" placeholder="Username" value={form.username} onChange={handleChange} />
-        <input name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
-        <input name="address" placeholder="Address" value={form.address} onChange={handleChange} />
+        <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ background: '#fff', color: '#232946' }} />
+        <input name="firstName" placeholder="First name" value={form.firstName} onChange={handleChange} style={{ background: '#fff', color: '#232946', width: '100%' }} />
+        <input name="lastName" placeholder="Last name" value={form.lastName} onChange={handleChange} style={{ background: '#fff', color: '#232946', width: '100%' }} />
+        <input name="username" placeholder="Username" value={form.username} onChange={handleChange} style={{ background: '#fff', color: '#232946', width: '100%' }} />
+        <input name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} style={{ background: '#fff', color: '#232946', width: '100%' }} />
+        <input name="address" placeholder="Address" value={form.address} onChange={handleChange} style={{ background: '#fff', color: '#232946', width: '100%' }} />
         {error && <div className="error">{error}</div>}
         <button type="submit" disabled={saving}>Save</button>
         <button type="button" onClick={() => navigate('/chat')}>Back to Chat</button>

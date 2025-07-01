@@ -1,4 +1,8 @@
-// Simple Node.js + Express + Socket.IO backend for real-time chat
+// Simple Node.js + Express + Socket.IO backend    
+    const friendship = await Friendship.sendRequest(req.user._id, targetUser._id);
+    console.log(`✅ Friend request sent: ${req.user.username} -> ${targetUser.username}`);
+    res.json({ message: 'Friend request sent successfully' });
+  } catch (error) {real-time chat
 
 import express from 'express';
 import http from 'http';
@@ -46,9 +50,9 @@ app.post('/api/friends/request', auth, async (req, res) => {
       return res.status(400).json({ message: 'Cannot send friend request to yourself' });
     }
     
-    await Friendship.sendRequest(req.user._id, targetUser._id);
+    const friendship = await Friendship.sendRequest(req.user._id, targetUser._id);
     console.log(`✅ Friend request sent: ${req.user.username} -> ${targetUser.username}`);
-    res.json({ message: 'Friend request sent successfully' });
+    res.json({ message: 'Friend request sent', friendship });
   } catch (error) {
     console.error('Error in POST /api/friends/request:', error);
     if (error.message === 'Friendship request already exists') {
@@ -59,81 +63,76 @@ app.post('/api/friends/request', auth, async (req, res) => {
 });
 
 // Accept friend request
-app.put('/api/friends/accept/:id', auth, async (req, res) => {
+app.post('/api/friends/accept', auth, async (req, res) => {
   try {
-    const friendship = await Friendship.findById(req.params.id);
+    const { senderId } = req.body;
     
-    if (!friendship) {
-      return res.status(404).json({ message: 'Friend request not found' });
-    }
-    
-    if (friendship.user_id_2.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-    
-    await Friendship.acceptRequest(req.params.id);
-    res.json({ message: 'Friend request accepted' });
-  } catch (error) {
-    console.error('Error in PUT /api/friends/accept:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Decline friend request
-app.put('/api/friends/decline/:id', auth, async (req, res) => {
-  try {
-    const friendship = await Friendship.findById(req.params.id);
-    
-    if (!friendship) {
-      return res.status(404).json({ message: 'Friend request not found' });
-    }
-    
-    if (friendship.user_id_2.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-    
-    await Friendship.declineRequest(req.params.id);
-    res.json({ message: 'Friend request declined' });
-  } catch (error) {
-    console.error('Error in PUT /api/friends/decline:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Remove friend
-app.delete('/api/friends/:id', auth, async (req, res) => {
-  try {
     const friendship = await Friendship.findOne({
-      _id: req.params.id,
       $or: [
-        { user_id_1: req.user._id },
-        { user_id_2: req.user._id }
-      ]
+        { user_id_1: senderId, user_id_2: req.user._id },
+        { user_id_1: req.user._id, user_id_2: senderId }
+      ],
+      status: 'pending'
     });
     
     if (!friendship) {
-      return res.status(404).json({ message: 'Friendship not found' });
+      return res.status(404).json({ message: 'Friend request not found' });
     }
     
-    await Friendship.removeFriend(req.params.id);
-    res.json({ message: 'Friend removed' });
+    friendship.status = 'accepted';
+    await friendship.save();
+    
+    res.json({ message: 'Friend request accepted', friendship });
   } catch (error) {
-    console.error('Error in DELETE /api/friends:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Get friend requests
+// Reject friend request
+app.post('/api/friends/reject', auth, async (req, res) => {
+  try {
+    const { senderId } = req.body;
+    
+    const friendship = await Friendship.findOneAndDelete({
+      $or: [
+        { user_id_1: senderId, user_id_2: req.user._id },
+        { user_id_1: req.user._id, user_id_2: senderId }
+      ],
+      status: 'pending'
+    });
+    
+    if (!friendship) {
+      return res.status(404).json({ message: 'Friend request not found' });
+    }
+    
+    res.json({ message: 'Friend request rejected' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get pending friend requests
 app.get('/api/friends/requests', auth, async (req, res) => {
   try {
-    const requests = await Friendship.find({
-      user_id_2: req.user._id,
-      status: 'pending'
-    }).populate('user_id_1', 'username firstName avatar');
+    const friendRequests = await Friendship.find({
+      $or: [
+        { user_id_1: req.user._id, status: 'pending' },
+        { user_id_2: req.user._id, status: 'pending' }
+      ]
+    }).populate('user_id_1 user_id_2', 'username firstName avatar');
     
-    res.json(requests);
+    // Format the response to show who sent the request
+    const formattedRequests = friendRequests.map(request => ({
+      id: request._id,
+      sender: request.requester.toString() === req.user._id.toString() ? 
+        request.user_id_2 : request.user_id_1,
+      type: request.requester.toString() === req.user._id.toString() ? 
+        'sent' : 'received',
+      createdAt: request.createdAt
+    }));
+    
+    res.json(formattedRequests);
   } catch (error) {
-    console.error('Error in GET /api/friends/requests:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -163,30 +162,28 @@ app.get('/api/friends', auth, async (req, res) => {
   }
 });
 
-// Conversation routes
-// Get or create conversation
+// Message and Conversation routes
+// Get or create conversation between two users
 app.get('/api/conversations/:friendId', auth, async (req, res) => {
   try {
     const { friendId } = req.params;
+    const userId = req.user._id;
     
-    // Check if conversation exists
+    // Find existing conversation
     let conversation = await Conversation.findOne({
-      participants: { $all: [req.user._id, friendId] }
-    }).populate('participants', 'username firstName avatar')
-     .populate('lastMessage');
+      participants: { $all: [userId, friendId] }
+    });
     
     // Create new conversation if doesn't exist
     if (!conversation) {
       conversation = new Conversation({
-        participants: [req.user._id, friendId]
+        participants: [userId, friendId]
       });
       await conversation.save();
-      await conversation.populate('participants', 'username firstName avatar');
     }
     
     res.json(conversation);
   } catch (error) {
-    console.error('Error in GET /api/conversations:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -199,19 +196,20 @@ app.get('/api/conversations/:conversationId/messages', auth, async (req, res) =>
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
     
-    const messages = await Message.find({ conversation: conversationId })
+    // Verify user is participant in conversation
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation || !conversation.participants.includes(req.user._id)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    const messages = await Message.find({ conversationId })
       .populate('sender', 'username firstName avatar')
       .sort({ timestamp: -1 })
-      .limit(limit)
-      .skip(skip);
+      .skip(skip)
+      .limit(limit);
     
-    res.json({
-      messages: messages.reverse(),
-      page,
-      hasMore: messages.length === limit
-    });
+    res.json(messages.reverse()); // Return in chronological order
   } catch (error) {
-    console.error('Error in GET /api/conversations/messages:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -222,27 +220,40 @@ app.post('/api/conversations/:conversationId/messages', auth, async (req, res) =
     const { conversationId } = req.params;
     const { content } = req.body;
     
+    if (!content || !content.trim()) {
+      return res.status(400).json({ message: 'Message content is required' });
+    }
+    
+    // Verify user is participant in conversation
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation || !conversation.participants.includes(req.user._id)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
     const message = new Message({
-      conversation: conversationId,
+      conversationId,
       sender: req.user._id,
-      content
+      content: content.trim()
     });
     
     await message.save();
     await message.populate('sender', 'username firstName avatar');
     
-    // Update conversation's last message
-    await Conversation.findByIdAndUpdate(conversationId, {
-      lastMessage: message._id,
-      updatedAt: new Date()
+    // Emit message to other participants via Socket.IO
+    const recipientId = conversation.participants.find(p => p.toString() !== req.user._id.toString());
+    io.to(`user_${recipientId}`).emit('new_message', {
+      conversationId,
+      message: {
+        _id: message._id,
+        content: message.content,
+        sender: message.sender,
+        timestamp: message.timestamp,
+        read: message.read
+      }
     });
     
-    // Emit the message to all users in the conversation room
-    io.to(`conversation_${conversationId}`).emit('new_message', message);
-    
-    res.json(message);
+    res.status(201).json(message);
   } catch (error) {
-    console.error('Error in POST /api/conversations/messages:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -252,44 +263,30 @@ app.put('/api/conversations/:conversationId/messages/read', auth, async (req, re
   try {
     const { conversationId } = req.params;
     
+    // Verify user is participant in conversation
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation || !conversation.participants.includes(req.user._id)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    // Mark all messages in conversation as read (except user's own messages)
     await Message.updateMany(
       { 
-        conversation: conversationId,
+        conversationId, 
         sender: { $ne: req.user._id },
-        read: false
+        read: false 
       },
-      { 
-        read: true,
-        readAt: new Date()
-      }
+      { read: true }
     );
     
     res.json({ message: 'Messages marked as read' });
   } catch (error) {
-    console.error('Error in PUT /api/conversations/messages/read:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Get all conversations for a user
-app.get('/api/conversations', auth, async (req, res) => {
-  try {
-    const conversations = await Conversation.find({
-      participants: req.user._id
-    })
-    .populate('participants', 'username firstName avatar online lastSeen')
-    .populate('lastMessage')
-    .sort({ updatedAt: -1 });
-    
-    res.json(conversations);
-  } catch (error) {
-    console.error('Error in GET /api/conversations:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
 io.on('connection', (socket) => {
-  console.log(`🔌 New connection: ${socket.id}`);
+  console.log(`🔌 User connected: ${socket.id}`);
 
   // Handle user authentication and set online status
   socket.on('user_connect', async (userId) => {
@@ -301,7 +298,7 @@ io.on('connection', (socket) => {
         online: true, 
         lastSeen: new Date() 
       });
-      console.log(`🟢 ${userId} online`);
+      console.log(`🟢 User online: ${userId}`);
       
       // Notify friends that user is online
       socket.broadcast.emit('user_status_change', { userId, online: true });
@@ -313,13 +310,13 @@ io.on('connection', (socket) => {
   // Handle joining conversation rooms
   socket.on('join_conversation', (conversationId) => {
     socket.join(`conversation_${conversationId}`);
-    console.log(`💬 User joined conversation`);
+    console.log(`💬 User ${socket.userId} joined conversation`);
   });
 
   // Handle leaving conversation rooms
   socket.on('leave_conversation', (conversationId) => {
     socket.leave(`conversation_${conversationId}`);
-    console.log(`👋 User left conversation`);
+    console.log(`👋 User ${socket.userId} left conversation`);
   });
 
   // Handle typing indicators
@@ -340,7 +337,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', async () => {
-    console.log(`🔌 Disconnected: ${socket.id}`);
+    console.log(`🔌 User disconnected: ${socket.id}`);
     
     // Set user offline when disconnected
     if (socket.userId) {
@@ -349,7 +346,7 @@ io.on('connection', (socket) => {
           online: false, 
           lastSeen: new Date() 
         });
-        console.log(`🔴 ${socket.userId} offline`);
+        console.log(`🔴 User offline: ${socket.userId}`);
         
         // Notify friends that user is offline
         socket.broadcast.emit('user_status_change', { userId: socket.userId, online: false });
