@@ -24,17 +24,10 @@ export default function Chat({ user, loading, onLogout }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-<<<<<<< 84ifm1-codex/cải-thiện-giao-diện-giống-messages
     if (!loading && !user) {
       navigate('/login');
     }
   }, [user, loading, navigate]);
-=======
-    if (!user) {
-      navigate('/login');
-    }
-  }, [user, navigate]);
->>>>>>> main
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -56,6 +49,8 @@ export default function Chat({ user, loading, onLogout }) {
           onSelect={setSelectedId}
           onSearch={setSearch}
           search={search}
+          // Set input text color to black for Sidebar search input
+          inputStyle={{ color: 'black' }}
         />
         <ChatWindow
           messages={messages}
@@ -63,6 +58,8 @@ export default function Chat({ user, loading, onLogout }) {
           input={input}
           setInput={setInput}
           recipient={recipient}
+          // Set input text color to black for ChatWindow input
+          inputStyle={{ color: 'black' }}
         />
         {/* Optional right panel for future use */}
       </div>

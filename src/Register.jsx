@@ -45,8 +45,8 @@ export default function Register() {
       <form className="auth-form" onSubmit={handleSubmit}>
         <h2>Register</h2>
         {error && <div className="error">{error}</div>}
-        <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} />
-        <input name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange} />
+        <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} style={{ color: 'black' }} />
+        <input name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange} style={{ color: 'black' }} />
         <button type="submit">Register</button>
         <div className="auth-links">
           <Link to="/login">Already have an account? Login</Link>
