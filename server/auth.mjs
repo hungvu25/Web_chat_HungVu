@@ -5,12 +5,20 @@ import Message from './models/Message.mjs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/chatapp', {
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/chatapp';
+
+mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
+})
+.then(() => {
+  console.log('✅ Connected to MongoDB successfully');
+})
+.catch((error) => {
+  console.error('❌ MongoDB connection error:', error);
 });
 
 // Register

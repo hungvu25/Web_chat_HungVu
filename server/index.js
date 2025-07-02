@@ -4,22 +4,36 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import { registerUser, loginUser, auth, getProfile, updateProfile } from './auth.js';
 import User from './models/User.mjs';
 import Friendship from './models/Friendship.mjs';
 import Message from './models/Message.mjs';
 import Conversation from './models/Conversation.mjs';
 
+// Load environment variables
+dotenv.config();
+
 const app = express();
 const server = http.createServer(app);
+
+// Configure allowed origins from environment
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
 const io = new Server(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
-app.use(cors());
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(express.json());
 
 // User registration
@@ -454,7 +468,9 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = 3001;
-server.listen(PORT, () => {
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Chat Server running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Allowed origins: ${allowedOrigins.join(', ')}`);
 });

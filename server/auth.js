@@ -4,11 +4,26 @@ import Conversation from './models/Conversation.mjs';
 import Message from './models/Message.mjs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-const JWT_SECRET = 'supersecretkey';
+// Load environment variables
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Connect to MongoDB
-mongoose.connect('mongodb+srv://hungvuwebchat:Hungvu07082005@cluster0.envzvlc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
+const MONGO_URI = process.env.MONGO_URI ;
+
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => {
+  console.log('✅ Connected to MongoDB successfully');
+})
+.catch((error) => {
+  console.error('❌ MongoDB connection error:', error);
+});
 
 // Register
 export async function registerUser(req, res) {
