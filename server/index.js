@@ -1,5 +1,4 @@
 // Simple Node.js + Express + Socket.IO backend for real-time chat
-// Backend development branch - version 1.0
 
 import express from 'express';
 import http from 'http';
