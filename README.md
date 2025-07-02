@@ -1,6 +1,6 @@
-# Web Chat Application
+# Chattera
 
-This project is a modern web chat application built with Vite and React for the frontend. The backend will use Node.js, Express, and Socket.IO for real-time messaging.
+Chattera is a modern web chat application built with Vite and React for the frontend. The backend uses Node.js, Express, and Socket.IO for real-time messaging.
 
 ## Features
 - Real-time messaging with multiple users

@@ -22,26 +22,26 @@ export const sendFriendRequest = async (username) => {
 
 // Accept friend request
 export const acceptFriendRequest = async (requestId) => {
-  console.log(`🤝 Accepting friend request: ${requestId}`);
-  console.log(`🔐 Auth token present: ${!!authUtils.getToken()}`);
+  // console.log(`🤝 Accepting friend request: ${requestId}`);
+  // console.log(`🔐 Auth token present: ${!!authUtils.getToken()}`);
   
   try {
     const response = await authUtils.apiRequest(`${API_BASE}/friends/accept/${requestId}`, {
       method: 'PUT'
     });
     
-    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    // console.log(`📡 Response status: ${response.status} ${response.statusText}`);
     
     const data = await response.json();
-    console.log(`📦 Response data:`, data);
+    // console.log(`📦 Response data:`, data);
     
     if (!response.ok) {
-      console.error('❌ Accept friend request failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        data,
-        requestId
-      });
+      // console.error('❌ Accept friend request failed:', {
+      //   status: response.status,
+      //   statusText: response.statusText,
+      //   data,
+      //   requestId
+      // });
       
       // Provide more specific error messages
       if (response.status === 401) {
@@ -55,7 +55,7 @@ export const acceptFriendRequest = async (requestId) => {
       }
     }
     
-    console.log(`✅ Friend request ${requestId} accepted successfully`);
+    // console.log(`✅ Friend request ${requestId} accepted successfully`);
     return data;
   } catch (error) {
     console.error('❌ Error accepting friend request:', error);
@@ -119,6 +119,35 @@ export const getFriends = async () => {
     return data;
   } catch (error) {
     console.error('Error getting friends:', error);
+    throw error;
+  }
+};
+
+// Remove friend
+export const removeFriend = async (friendshipId) => {
+  try {
+    // console.log(`🗑️ Removing friendship: ${friendshipId}`);
+    
+    const response = await authUtils.apiRequest(`${API_BASE}/friends/${friendshipId}`, {
+      method: 'DELETE'
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      // console.error('❌ Remove friend failed:', {
+      //   status: response.status,
+      //   statusText: response.statusText,
+      //   data,
+      //   friendshipId
+      // });
+      throw new Error(data.message || 'Failed to remove friend');
+    }
+    
+    // console.log(`✅ Friend removed successfully: ${friendshipId}`);
+    return data;
+  } catch (error) {
+    console.error('❌ Error removing friend:', error);
     throw error;
   }
 };

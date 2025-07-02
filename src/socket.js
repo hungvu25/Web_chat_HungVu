@@ -2,9 +2,9 @@
 import { io } from 'socket.io-client';
 import { SOCKET_URL } from './constants.js';
 
-console.log('🔗 Socket URL:', SOCKET_URL);
-console.log('🌐 Environment:', import.meta.env.MODE);
-console.log('🏗️ Production?', import.meta.env.PROD);
+// console.log('🔗 Socket URL:', SOCKET_URL);
+// console.log('🌐 Environment:', import.meta.env.MODE);
+// console.log('🏗️ Production?', import.meta.env.PROD);
 
 // Track connection state to reduce spam logs
 let isConnectionLogged = false;
@@ -43,14 +43,14 @@ socket.on('connect_error', (error) => {
 });
 
 socket.on('connect', () => {
-  console.log('✅ Socket connected successfully');
+  // console.log('✅ Socket connected successfully');
   // Reset error logging when connected
   errorLogCount = 0;
   isConnectionLogged = false;
 });
 
 socket.on('disconnect', (reason) => {
-  console.log('🔌 Socket disconnected:', reason);
+  // console.log('🔌 Socket disconnected:', reason);
   // Reset error logging on disconnect
   errorLogCount = 0;
 });
@@ -61,7 +61,7 @@ export const isSocketConnected = () => socket.connected;
 // Export a function to manually reconnect
 export const reconnectSocket = () => {
   if (!socket.connected) {
-    console.log('🔄 Attempting to reconnect socket...');
+    // console.log('🔄 Attempting to reconnect socket...');
     socket.connect();
   }
 };

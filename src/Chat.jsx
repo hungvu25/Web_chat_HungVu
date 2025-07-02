@@ -41,6 +41,15 @@ export default function Chat({ user, loading, onLogout }) {
     online: friend.online || false // Use actual online status from database
   }));
   
+  // Debug: Log when conversationsList changes
+  useEffect(() => {
+    if (conversationsList.length > 0) {
+      console.log('🎨 UI: ConversationsList updated with online status:', 
+        conversationsList.map(c => ({ name: c.name, online: c.online }))
+      );
+    }
+  }, [friends]);
+  
   const recipient = conversationsList.find(c => c.id === selectedId);
   const currentMessages = currentConversationId ? (messagesData[currentConversationId] || []) : [];
   const navigate = useNavigate();
@@ -72,7 +81,7 @@ export default function Chat({ user, loading, onLogout }) {
   useEffect(() => {
     if (!user || socketConnected) return;
     
-    console.log('🔄 Socket not connected, starting notification polling...');
+    // console.log('🔄 Socket not connected, starting notification polling...');
     let pollLogCount = 0;
     const MAX_POLL_LOGS = 2; // Limit polling logs
     
@@ -95,7 +104,7 @@ export default function Chat({ user, loading, onLogout }) {
           if (truly_new.length > 0) {
             // Only log first few polling results to prevent spam
             if (pollLogCount < MAX_POLL_LOGS) {
-              console.log('📨 Polling found new notifications:', truly_new);
+              // console.log('📨 Polling found new notifications:', truly_new);
               pollLogCount++;
             }
             return [...truly_new, ...prev];
@@ -124,6 +133,14 @@ export default function Chat({ user, loading, onLogout }) {
       socket.emit('user_connect', user._id);
       console.log('👤 User connected:', user._id);
       
+      // Setup heartbeat to maintain online status
+      const heartbeatInterval = setInterval(() => {
+        if (socket.connected && user._id) {
+          socket.emit('heartbeat', user._id);
+          console.log('💓 Heartbeat sent');
+        }
+      }, 1 * 60 * 1000); // Send heartbeat every 1 minute
+      
       // Debug connection status
       socket.on('connect', () => {
         console.log('✅ Socket connected successfully');
@@ -137,25 +154,27 @@ export default function Chat({ user, loading, onLogout }) {
       });
       
       socket.on('disconnect', (reason) => {
-        console.log('🔌 Socket disconnected:', reason);
+        // console.log('🔌 Socket disconnected:', reason);
         setSocketConnected(false);
       });
       
       // Listen for user status changes
       socket.on('user_status_change', (data) => {
-        console.log('👥 User status change:', data);
-        setFriends(prevFriends => 
-          prevFriends.map(friend => 
+        console.log('👥 User status change received:', data);
+        setFriends(prevFriends => {
+          const updatedFriends = prevFriends.map(friend => 
             friend._id === data.userId 
               ? { ...friend, online: data.online }
               : friend
-          )
-        );
+          );
+          console.log('📝 Updated friends list with new status');
+          return updatedFriends;
+        });
       });
 
       // Listen for new messages
       socket.on('new_message', (data) => {
-        console.log('💬 New message received:', data);
+        // console.log('💬 New message received:', data);
         // Only add message if it's from someone else (not from current user)
         if (data.sender._id !== user._id) {
           setMessagesData(prev => ({
@@ -173,8 +192,8 @@ export default function Chat({ user, loading, onLogout }) {
 
       // Listen for friend requests
       socket.on('friend_request_received', (data) => {
-        console.log('🔔 New friend request received:', data);
-        console.log('🔔 Socket room should be:', `user_${user._id}`);
+        // console.log('🔔 New friend request received:', data);
+        // console.log('🔔 Socket room should be:', `user_${user._id}`);
         const notification = {
           id: data.id,
           type: 'friend_request',
@@ -184,13 +203,12 @@ export default function Chat({ user, loading, onLogout }) {
         };
         setNotifications(prev => [notification, ...prev]);
         
-        // Show alert for immediate feedback
-        alert(`${data.sender.username} sent you a friend request!`);
+        // Notification will show in the UI panel instead
       });
 
       // Listen for friend request acceptances
       socket.on('friend_request_accepted', (data) => {
-        console.log('🎉 Friend request accepted:', data);
+        // console.log('🎉 Friend request accepted:', data);
         const notification = {
           id: data.id,
           type: 'friend_accepted',
@@ -203,13 +221,13 @@ export default function Chat({ user, loading, onLogout }) {
         // Reload friends list to include the new friend
         loadFriendsAndNotifications();
         
-        // Show alert for immediate feedback
-        alert(`${data.sender.username} accepted your friend request!`);
+        // Notification will show in the UI panel instead
       });
       
       // Cleanup on unmount
       return () => {
-        console.log('🧹 Cleaning up socket listeners');
+        console.log('🧹 Cleaning up socket listeners and heartbeat');
+        clearInterval(heartbeatInterval);
         socket.off('connect');
         socket.off('connect_error');
         socket.off('disconnect');
@@ -248,7 +266,7 @@ export default function Chat({ user, loading, onLogout }) {
           sender: msg.sender
         }));
         
-        console.log('✅ Messages loaded successfully'); // Simple log
+        // console.log('✅ Messages loaded successfully'); // Simple log
         
         setMessagesData(prev => ({
           ...prev,
@@ -278,6 +296,11 @@ export default function Chat({ user, loading, onLogout }) {
     try {
       // Load friends list
       const friendsData = await getFriends();
+      console.log('👥 Loaded friends with online status:', friendsData.map(f => ({ 
+        name: f.firstName || f.username, 
+        online: f.online,
+        lastSeen: f.lastSeen 
+      })));
       setFriends(friendsData);
 
       // Load friend requests (notifications)
@@ -298,6 +321,8 @@ export default function Chat({ user, loading, onLogout }) {
       setLoadingFriends(false);
     }
   };
+
+
 
   const handleSend = async () => {
     if (!input.trim() || !currentConversationId) return;
@@ -361,7 +386,7 @@ export default function Chat({ user, loading, onLogout }) {
     
     try {
       await sendFriendRequest(friendUsername);
-      alert(`Friend request sent to ${friendUsername} successfully!`);
+      // Success - no alert needed, the form closes indicating success
       setFriendUsername('');
       setShowAddFriend(false);
     } catch (error) {
@@ -371,23 +396,23 @@ export default function Chat({ user, loading, onLogout }) {
 
   const handleAcceptFriend = async (requestId) => {
     try {
-      console.log(`🤝 Accepting friend request: ${requestId}`);
-      console.log(`🔐 Current user:`, user);
-      console.log(`🔐 Auth token available:`, !!localStorage.getItem('token'));
+      // console.log(`🤝 Accepting friend request: ${requestId}`);
+      // console.log(`🔐 Current user:`, user);
+      // console.log(`🔐 Auth token available:`, !!localStorage.getItem('token'));
       
       await acceptFriendRequest(requestId);
       
       // Remove notification and reload friends list
       setNotifications(prev => {
-        console.log(`📋 Removing notification ${requestId} from:`, prev.map(n => n.id));
+        // console.log(`📋 Removing notification ${requestId} from:`, prev.map(n => n.id));
         return prev.filter(n => n.id !== requestId);
       });
       
       // Reload to get updated friends list
       await loadFriendsAndNotifications();
       
-      console.log(`✅ Friend request ${requestId} accepted successfully`);
-      alert('Friend request accepted!');
+      // console.log(`✅ Friend request ${requestId} accepted successfully`);
+      // Success - notification removed from UI indicates success
     } catch (error) {
       console.error(`❌ Failed to accept friend request ${requestId}:`, error);
       console.error(`❌ Error details:`, {
@@ -416,9 +441,9 @@ export default function Chat({ user, loading, onLogout }) {
   const handleRejectFriend = async (requestId) => {
     try {
       await rejectFriendRequest(requestId);
-      // Remove notification
+      // Remove notification  
       setNotifications(prev => prev.filter(n => n.id !== requestId));
-      alert('Friend request rejected!');
+      // Success - notification removed from UI indicates success
     } catch (error) {
       alert(`Error: ${error.message}`);
     }

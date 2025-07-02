@@ -97,7 +97,7 @@ app.get('/api/debug/token', (req, res) => {
 
 // CORS debugging middleware
 app.use((req, res, next) => {
-  console.log(`📡 ${req.method} ${req.path} from origin: ${req.headers.origin || 'no-origin'}`);
+  // console.log(`📡 ${req.method} ${req.path} from origin: ${req.headers.origin || 'no-origin'}`);
   next();
 });
 
@@ -114,7 +114,7 @@ app.post('/api/logout', auth, async (req, res) => {
       lastSeen: new Date() 
     });
     
-    console.log(`👋 User ${req.user.username} logged out`);
+    // console.log(`👋 User ${req.user.username} logged out`);
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
     console.error('Error in logout:', error);
@@ -128,7 +128,7 @@ app.put('/api/profile', auth, updateProfile);
 // Friendship routes
 // Send friend request
 app.post('/api/friends/request', auth, async (req, res) => {
-  console.log(`📨 Friend request: ${req.user.username} -> ${req.body.username}`);
+  // console.log(`📨 Friend request: ${req.user.username} -> ${req.body.username}`);
   try {
     const { username } = req.body;
     const targetUser = await User.findOne({ username });
@@ -157,14 +157,14 @@ app.post('/api/friends/request', auth, async (req, res) => {
       createdAt: friendship.createdAt
     };
     
-    console.log(`🎯 Sending notification to room: ${roomName}`);
-    console.log(`📦 Notification data:`, notificationData);
-    console.log(`👥 Clients in room:`, io.sockets.adapter.rooms.get(roomName)?.size || 0);
+    // console.log(`🎯 Sending notification to room: ${roomName}`);
+    // console.log(`📦 Notification data:`, notificationData);
+    // console.log(`👥 Clients in room:`, io.sockets.adapter.rooms.get(roomName)?.size || 0);
     
     io.to(roomName).emit('friend_request_received', notificationData);
-    console.log(`🔔 Real-time notification sent to ${targetUser.username}`);
+    // console.log(`🔔 Real-time notification sent to ${targetUser.username}`);
     
-    console.log(`✅ Friend request sent: ${req.user.username} -> ${targetUser.username}`);
+    // console.log(`✅ Friend request sent: ${req.user.username} -> ${targetUser.username}`);
     res.json({ message: 'Friend request sent successfully' });
   } catch (error) {
     console.error('Error in POST /api/friends/request:', error);
@@ -177,26 +177,26 @@ app.post('/api/friends/request', auth, async (req, res) => {
 
 // Accept friend request
 app.put('/api/friends/accept/:id', auth, async (req, res) => {
-  console.log(`✅ Accepting friend request ${req.params.id} by ${req.user.username} (ID: ${req.user._id})`);
+  // console.log(`✅ Accepting friend request ${req.params.id} by ${req.user.username} (ID: ${req.user._id})`);
   try {
     const friendship = await Friendship.findById(req.params.id);
     
     if (!friendship) {
-      console.error(`❌ Friend request ${req.params.id} not found`);
+      // console.error(`❌ Friend request ${req.params.id} not found`);
       return res.status(404).json({ message: 'Friend request not found' });
     }
 
-    console.log(`📝 Friendship details:`, {
-      id: friendship._id,
-      user_id_1: friendship.user_id_1,
-      user_id_2: friendship.user_id_2,
-      requester: friendship.requester,
-      status: friendship.status
-    });
+    // console.log(`📝 Friendship details:`, {
+    //   id: friendship._id,
+    //   user_id_1: friendship.user_id_1,
+    //   user_id_2: friendship.user_id_2,
+    //   requester: friendship.requester,
+    //   status: friendship.status
+    // });
 
     // Check if current user is the recipient of the request (not the requester)
     if (friendship.requester.toString() === req.user._id.toString()) {
-      console.error(`❌ User ${req.user.username} trying to accept their own request`);
+      // console.error(`❌ User ${req.user.username} trying to accept their own request`);
       return res.status(403).json({ message: 'You cannot accept your own friend request' });
     }
     
@@ -205,14 +205,14 @@ app.put('/api/friends/accept/:id', auth, async (req, res) => {
                        (friendship.user_id_2.toString() === req.user._id.toString() && friendship.requester.toString() !== req.user._id.toString());
     
     if (!isRecipient) {
-      console.error(`❌ User ${req.user.username} not authorized to accept this request`);
-      console.error(`📋 Auth check: user=${req.user._id}, user1=${friendship.user_id_1}, user2=${friendship.user_id_2}, requester=${friendship.requester}`);
+      // console.error(`❌ User ${req.user.username} not authorized to accept this request`);
+      // console.error(`📋 Auth check: user=${req.user._id}, user1=${friendship.user_id_1}, user2=${friendship.user_id_2}, requester=${friendship.requester}`);
       return res.status(403).json({ message: 'You are not authorized to accept this request' });
     }
     
     // Check if already accepted
     if (friendship.status === 'accepted') {
-      console.warn(`⚠️ Friend request ${req.params.id} already accepted`);
+      // console.warn(`⚠️ Friend request ${req.params.id} already accepted`);
       return res.status(400).json({ message: 'Friend request already accepted' });
     }
     
@@ -233,20 +233,20 @@ app.put('/api/friends/accept/:id', auth, async (req, res) => {
       },
       createdAt: new Date()
     });
-    console.log(`🔔 Friend acceptance notification sent to requester ${requesterId}`);
+    // console.log(`🔔 Friend acceptance notification sent to requester ${requesterId}`);
     
-    console.log(`✅ Friend request ${req.params.id} accepted by ${req.user.username}`);
+    // console.log(`✅ Friend request ${req.params.id} accepted by ${req.user.username}`);
     res.json({ message: 'Friend request accepted' });
   } catch (error) {
     console.error('❌ Error in PUT /api/friends/accept:', error);
-    console.error('❌ Stack trace:', error.stack);
+    // console.error('❌ Stack trace:', error.stack);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
 // Decline friend request
 app.put('/api/friends/decline/:id', auth, async (req, res) => {
-  console.log(`❌ Declining friend request ${req.params.id} by ${req.user.username}`);
+  // console.log(`❌ Declining friend request ${req.params.id} by ${req.user.username}`);
   try {
     const friendship = await Friendship.findById(req.params.id);
     
@@ -264,7 +264,7 @@ app.put('/api/friends/decline/:id', auth, async (req, res) => {
     }
     
     await Friendship.declineRequest(req.params.id);
-    console.log(`❌ Friend request ${req.params.id} declined by ${req.user.username}`);
+    // console.log(`❌ Friend request ${req.params.id} declined by ${req.user.username}`);
     res.json({ message: 'Friend request declined' });
   } catch (error) {
     console.error('Error in PUT /api/friends/decline:', error);
@@ -297,7 +297,7 @@ app.delete('/api/friends/:id', auth, async (req, res) => {
 
 // Get friend requests
 app.get('/api/friends/requests', auth, async (req, res) => {
-  console.log(`📋 Getting friend requests for: ${req.user.username}`);
+  // console.log(`📋 Getting friend requests for: ${req.user.username}`);
   try {
     const friendRequests = await Friendship.find({
       $or: [
@@ -306,10 +306,10 @@ app.get('/api/friends/requests', auth, async (req, res) => {
       ]
     }).populate('user_id_1 user_id_2 requester', 'username firstName avatar');
     
-    console.log(`📝 Raw friend requests found: ${friendRequests.length}`);
-    friendRequests.forEach(req => {
-      console.log(`📝 Request: ${req._id}, requester: ${req.requester._id}, user1: ${req.user_id_1._id}, user2: ${req.user_id_2._id}`);
-    });
+    // console.log(`📝 Raw friend requests found: ${friendRequests.length}`);
+    // friendRequests.forEach(req => {
+    //   console.log(`📝 Request: ${req._id}, requester: ${req.requester._id}, user1: ${req.user_id_1._id}, user2: ${req.user_id_2._id}`);
+    // });
     
     // Format the response to show who sent the request
     const formattedRequests = friendRequests.map(request => {
@@ -329,12 +329,56 @@ app.get('/api/friends/requests', auth, async (req, res) => {
       };
     });
     
-    console.log(`✅ Found ${formattedRequests.length} friend requests for ${req.user.username}`);
-    console.log(`📝 Formatted requests:`, formattedRequests.map(r => `${r.type}: ${r.sender.username}`));
+    // console.log(`✅ Found ${formattedRequests.length} friend requests for ${req.user.username}`);
+    // console.log(`📝 Formatted requests:`, formattedRequests.map(r => `${r.type}: ${r.sender.username}`));
     res.json(formattedRequests);
   } catch (error) {
     console.error('Error in GET /api/friends/requests:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Cleanup offline users - manual endpoint
+app.post('/api/cleanup-offline-users', auth, async (req, res) => {
+  try {
+    // Set all users offline except currently connected ones
+    const connectedUserIds = Array.from(io.sockets.sockets.values())
+      .map(socket => socket.userId)
+      .filter(Boolean);
+    
+    console.log('🧹 Connected user IDs:', connectedUserIds);
+    
+    const result = await User.updateMany(
+      { 
+        _id: { $nin: connectedUserIds },
+        online: true 
+      },
+      { 
+        online: false,
+        lastSeen: new Date()
+      }
+    );
+    
+    console.log(`🧹 Cleanup: Set ${result.modifiedCount} users offline`);
+    
+    // Broadcast status changes for all affected users
+    const affectedUsers = await User.find({
+      _id: { $nin: connectedUserIds },
+      online: false
+    }).select('_id');
+    
+    affectedUsers.forEach(user => {
+      io.emit('user_status_change', { userId: user._id, online: false });
+    });
+    
+    res.json({ 
+      message: 'Offline users cleaned up', 
+      usersSetOffline: result.modifiedCount,
+      connectedUsers: connectedUserIds.length
+    });
+  } catch (error) {
+    console.error('Error cleaning up offline users:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -352,10 +396,18 @@ app.get('/api/friends', auth, async (req, res) => {
     const friends = friendships.map(friendship => {
       const friend = friendship.user_id_1._id.toString() === req.user._id.toString() ? 
         friendship.user_id_2 : friendship.user_id_1;
-      return friend;
+      
+      return {
+        ...friend.toObject(),
+        friendshipId: friendship._id // Include friendship ID for deletion
+      };
     });
     
-    console.log(`✅ Found ${friends.length} friends for ${req.user.username}`);
+    console.log(`✅ Found ${friends.length} friends for ${req.user.username}:`);
+    friends.forEach(friend => {
+      console.log(`  👤 ${friend.firstName || friend.username}: online=${friend.online}, lastSeen=${friend.lastSeen}`);
+    });
+    
     res.json(friends);
   } catch (error) {
     console.error('Error in GET /api/friends:', error);
@@ -500,14 +552,18 @@ io.on('connection', (socket) => {
       console.log(`🏠 User ${userId} joined room: ${roomName}`);
       console.log(`🏠 Socket ${socket.id} joined room: ${roomName}`);
       
-      await User.findByIdAndUpdate(userId, { 
+      const updatedUser = await User.findByIdAndUpdate(userId, { 
         online: true, 
         lastSeen: new Date() 
-      });
-      console.log(`🟢 ${userId} online`);
+      }, { new: true });
+      console.log(`🟢 ${updatedUser.username} (${userId}) set online in database: ${updatedUser.online}`);
       
       // Notify friends that user is online
+      console.log(`📡 Broadcasting user online status for ${userId}`);
       socket.broadcast.emit('user_status_change', { userId, online: true });
+      
+      // Also emit to all sockets to make sure friends receive it
+      io.emit('user_status_change', { userId, online: true });
     } catch (error) {
       console.error('Error setting user online:', error);
     }
@@ -542,20 +598,38 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Handle heartbeat to keep user online
+  socket.on('heartbeat', async (userId) => {
+    try {
+      if (socket.userId === userId) {
+        await User.findByIdAndUpdate(userId, { 
+          lastSeen: new Date() 
+        });
+        // console.log(`💓 Heartbeat from ${userId}`);
+      }
+    } catch (error) {
+      console.error('Error processing heartbeat:', error);
+    }
+  });
+
   socket.on('disconnect', async () => {
     console.log(`🔌 Disconnected: ${socket.id}`);
     
     // Set user offline when disconnected
     if (socket.userId) {
       try {
-        await User.findByIdAndUpdate(socket.userId, { 
+        const updatedUser = await User.findByIdAndUpdate(socket.userId, { 
           online: false, 
           lastSeen: new Date() 
-        });
-        console.log(`🔴 ${socket.userId} offline`);
+        }, { new: true });
+        console.log(`🔴 ${updatedUser.username} (${socket.userId}) set offline in database: ${updatedUser.online}`);
         
         // Notify friends that user is offline
+        console.log(`📡 Broadcasting user offline status for ${socket.userId}`);
         socket.broadcast.emit('user_status_change', { userId: socket.userId, online: false });
+        
+        // Also emit to all sockets to make sure friends receive it
+        io.emit('user_status_change', { userId: socket.userId, online: false });
       } catch (error) {
         console.error('Error setting user offline:', error);
       }
@@ -563,9 +637,75 @@ io.on('connection', (socket) => {
   });
 });
 
+// Auto cleanup function - chạy định kỳ
+const autoCleanupOfflineUsers = async () => {
+  try {
+    const connectedUserIds = Array.from(io.sockets.sockets.values())
+      .map(socket => socket.userId)
+      .filter(Boolean);
+    
+    // Set offline users who are not connected AND haven't been seen in last 10 minutes
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    
+    const result = await User.updateMany(
+      { 
+        $or: [
+          { _id: { $nin: connectedUserIds }, online: true },
+          { lastSeen: { $lt: tenMinutesAgo }, online: true }
+        ]
+      },
+      { 
+        online: false,
+        lastSeen: new Date()
+      }
+    );
+    
+    if (result.modifiedCount > 0) {
+      console.log(`🧹 Auto cleanup: Set ${result.modifiedCount} users offline (not connected or inactive > 10min)`);
+      
+      // Broadcast status changes for affected users
+      const affectedUsers = await User.find({
+        $or: [
+          { _id: { $nin: connectedUserIds }, online: false },
+          { lastSeen: { $lt: tenMinutesAgo }, online: false }
+        ]
+      }).select('_id');
+      
+      affectedUsers.forEach(user => {
+        io.emit('user_status_change', { userId: user._id, online: false });
+      });
+    }
+  } catch (error) {
+    console.error('Error in auto cleanup:', error);
+  }
+};
+
+// Initial cleanup when server starts - set all users offline
+const initialCleanup = async () => {
+  try {
+    const result = await User.updateMany(
+      { online: true },
+      { 
+        online: false,
+        lastSeen: new Date()
+      }
+    );
+    console.log(`🧹 Server startup: Set ${result.modifiedCount} users offline`);
+  } catch (error) {
+    console.error('Error in initial cleanup:', error);
+  }
+};
+
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Chat Server running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Allowed origins: ${allowedOrigins.join(', ')}`);
+  
+  // Set all users offline on server start
+  await initialCleanup();
+  
+  // Run auto cleanup every 5 minutes
+  setInterval(autoCleanupOfflineUsers, 5 * 60 * 1000); // 5 minutes
+  console.log('🕐 Auto cleanup scheduled every 5 minutes');
 });

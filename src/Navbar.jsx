@@ -10,7 +10,10 @@ export default function Navbar({ user, onProfile, onLogout, onMobileMenuToggle }
             ☰
           </button>
         )}
-        <div className="navbar-logo">SimpleChat</div>
+        <div className="navbar-logo">
+          <img src="/logo.svg" alt="Chattera" className="navbar-logo-img" />
+          <span className="navbar-logo-text">Chattera</span>
+        </div>
       </div>
       <div className="navbar-user">
         <img className="navbar-avatar" src={user?.avatar || DEFAULT_AVATAR} alt="avatar" />

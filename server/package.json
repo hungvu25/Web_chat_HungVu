@@ -1,5 +1,5 @@
 {
-  "name": "web-chat-server",
+  "name": "chattera-server",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",

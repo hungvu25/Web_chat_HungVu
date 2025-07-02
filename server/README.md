@@ -1,4 +1,4 @@
-# Web Chat Backend
+# Chattera Backend
 
 Real-time chat application backend built with Node.js, Express, Socket.IO, and MongoDB.
 
