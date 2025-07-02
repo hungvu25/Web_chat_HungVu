@@ -1,4 +1,4 @@
-# Deploy Frontend to Vercel - Hướng dẫn chi tiết
+# Deploy Chattera Frontend to Vercel - Hướng dẫn chi tiết
 
 ## Bước 1: Chuẩn bị code
 
@@ -37,8 +37,8 @@ Thêm các biến môi trường sau:
 
 | Key | Value |
 |-----|-------|
-| `VITE_API_URL` | `https://dichvutot.site/api` |
-| `VITE_SOCKET_URL` | `https://dichvutot.site` |
+| `VITE_API_URL` | `https://web-production-084d.up.railway.app/api` |
+| `VITE_SOCKET_URL` | `https://web-production-084d.up.railway.app` |
 
 ## Bước 5: Deploy
 
