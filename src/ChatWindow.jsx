@@ -14,7 +14,8 @@ export default function ChatWindow({
   notifications,
   onAcceptFriend,
   onRejectFriend,
-  onMarkAsRead
+  onMarkAsRead,
+  onMobileMenuToggle
 }) {
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -23,6 +24,11 @@ export default function ChatWindow({
     <section className="chat-window">
       <header className="chat-header">
         <div className="chat-header-left">
+          {onMobileMenuToggle && (
+            <button className="mobile-menu-toggle" onClick={onMobileMenuToggle}>
+              ☰
+            </button>
+          )}
           {recipient && (
             <>
               <img className="chat-avatar" src={recipient?.avatar || DEFAULT_AVATAR} alt="avatar" />

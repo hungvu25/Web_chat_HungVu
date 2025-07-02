@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import process from 'process';
+import jwt from 'jsonwebtoken';
 import { registerUser, loginUser, auth, getProfile, updateProfile } from './auth.js';
 import User from './models/User.mjs';
 import Friendship from './models/Friendship.mjs';
@@ -62,6 +63,38 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// JWT Debug endpoint (remove in production)
+app.get('/api/debug/token', (req, res) => {
+  const header = req.headers['authorization'];
+  console.log('🔍 Debug token request');
+  console.log('🔍 Authorization header:', header);
+  
+  if (!header) {
+    return res.json({ error: 'No authorization header' });
+  }
+  
+  const token = header.split(' ')[1];
+  console.log('🔍 Token:', token ? token.substring(0, 50) + '...' : 'No token');
+  
+  if (!token) {
+    return res.json({ error: 'No token in header' });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('🔍 Token decoded successfully:', decoded);
+    res.json({ valid: true, decoded });
+  } catch (error) {
+    console.log('🔍 Token error:', error.message);
+    res.json({ 
+      valid: false, 
+      error: error.message,
+      name: error.name,
+      jwtSecretExists: !!process.env.JWT_SECRET
+    });
+  }
+});
+
 // CORS debugging middleware
 app.use((req, res, next) => {
   console.log(`📡 ${req.method} ${req.path} from origin: ${req.headers.origin || 'no-origin'}`);
@@ -72,6 +105,22 @@ app.use((req, res, next) => {
 app.post('/api/register', registerUser);
 // User login
 app.post('/api/login', loginUser);
+// User logout - clear token on client side
+app.post('/api/logout', auth, async (req, res) => {
+  try {
+    // Set user offline when logging out
+    await User.findByIdAndUpdate(req.user._id, { 
+      online: false, 
+      lastSeen: new Date() 
+    });
+    
+    console.log(`👋 User ${req.user.username} logged out`);
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Error in logout:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 // Profile routes
 app.get('/api/profile', auth, getProfile);
 app.put('/api/profile', auth, updateProfile);
@@ -128,29 +177,42 @@ app.post('/api/friends/request', auth, async (req, res) => {
 
 // Accept friend request
 app.put('/api/friends/accept/:id', auth, async (req, res) => {
-  console.log(`✅ Accepting friend request ${req.params.id} by ${req.user.username}`);
+  console.log(`✅ Accepting friend request ${req.params.id} by ${req.user.username} (ID: ${req.user._id})`);
   try {
     const friendship = await Friendship.findById(req.params.id);
     
     if (!friendship) {
+      console.error(`❌ Friend request ${req.params.id} not found`);
       return res.status(404).json({ message: 'Friend request not found' });
     }
 
+    console.log(`📝 Friendship details:`, {
+      id: friendship._id,
+      user_id_1: friendship.user_id_1,
+      user_id_2: friendship.user_id_2,
+      requester: friendship.requester,
+      status: friendship.status
+    });
+
     // Check if current user is the recipient of the request (not the requester)
     if (friendship.requester.toString() === req.user._id.toString()) {
+      console.error(`❌ User ${req.user.username} trying to accept their own request`);
       return res.status(403).json({ message: 'You cannot accept your own friend request' });
     }
     
-    // Check if current user is one of the participants
-    const isParticipant = (friendship.user_id_1.toString() === req.user._id.toString()) ||
-                         (friendship.user_id_2.toString() === req.user._id.toString());
+    // Check if current user is one of the participants and is the recipient
+    const isRecipient = (friendship.user_id_1.toString() === req.user._id.toString() && friendship.requester.toString() !== req.user._id.toString()) ||
+                       (friendship.user_id_2.toString() === req.user._id.toString() && friendship.requester.toString() !== req.user._id.toString());
     
-    if (!isParticipant) {
+    if (!isRecipient) {
+      console.error(`❌ User ${req.user.username} not authorized to accept this request`);
+      console.error(`📋 Auth check: user=${req.user._id}, user1=${friendship.user_id_1}, user2=${friendship.user_id_2}, requester=${friendship.requester}`);
       return res.status(403).json({ message: 'You are not authorized to accept this request' });
     }
     
     // Check if already accepted
     if (friendship.status === 'accepted') {
+      console.warn(`⚠️ Friend request ${req.params.id} already accepted`);
       return res.status(400).json({ message: 'Friend request already accepted' });
     }
     
@@ -171,12 +233,13 @@ app.put('/api/friends/accept/:id', auth, async (req, res) => {
       },
       createdAt: new Date()
     });
-    console.log(`🔔 Friend acceptance notification sent to requester`);
+    console.log(`🔔 Friend acceptance notification sent to requester ${requesterId}`);
     
     console.log(`✅ Friend request ${req.params.id} accepted by ${req.user.username}`);
     res.json({ message: 'Friend request accepted' });
   } catch (error) {
-    console.error('Error in PUT /api/friends/accept:', error);
+    console.error('❌ Error in PUT /api/friends/accept:', error);
+    console.error('❌ Stack trace:', error.stack);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

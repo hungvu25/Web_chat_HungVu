@@ -1,10 +1,17 @@
 import React from 'react';
 import { DEFAULT_AVATAR } from './constants';
 
-export default function Navbar({ user, onProfile, onLogout }) {
+export default function Navbar({ user, onProfile, onLogout, onMobileMenuToggle }) {
   return (
     <nav className="navbar enhanced-navbar">
-      <div className="navbar-logo">SimpleChat</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        {onMobileMenuToggle && (
+          <button className="mobile-menu-toggle" onClick={onMobileMenuToggle}>
+            ☰
+          </button>
+        )}
+        <div className="navbar-logo">SimpleChat</div>
+      </div>
       <div className="navbar-user">
         <img className="navbar-avatar" src={user?.avatar || DEFAULT_AVATAR} alt="avatar" />
         <span className="navbar-username">{user?.username || user?.firstName || user?.email || 'User'}</span>

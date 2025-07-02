@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
+    "test-mongo": "node test-mongo.js",
     "build": "echo 'No build needed for Node.js backend'"
   },
   "engines": {

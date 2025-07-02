@@ -1,59 +1,69 @@
 // API functions for friend management
 import { API_BASE_URL } from '../constants.js';
+import { authUtils } from '../utils/auth.js';
 
 const API_BASE = API_BASE_URL;
 
-// Get auth token from localStorage
-const getAuthToken = () => {
-  return localStorage.getItem('token');
-};
-
 // Send friend request
 export const sendFriendRequest = async (username) => {
-  const response = await fetch(`${API_BASE}/friends/request`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getAuthToken()}`
-    },
-    body: JSON.stringify({ username })
-  });
-  
-  const data = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to send friend request');
+  try {
+    const response = await authUtils.apiRequest(`${API_BASE}/friends/request`, {
+      method: 'POST',
+      body: JSON.stringify({ username })
+    });
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error sending friend request:', error);
+    throw error;
   }
-  
-  return data;
 };
 
 // Accept friend request
 export const acceptFriendRequest = async (requestId) => {
-  const response = await fetch(`${API_BASE}/friends/accept/${requestId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getAuthToken()}`
-    }
-  });
+  console.log(`🤝 Accepting friend request: ${requestId}`);
+  console.log(`🔐 Auth token present: ${!!authUtils.getToken()}`);
   
-  let data;
   try {
-    data = await response.json();
-  } catch {
+    const response = await authUtils.apiRequest(`${API_BASE}/friends/accept/${requestId}`, {
+      method: 'PUT'
+    });
+    
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    
+    const data = await response.json();
+    console.log(`📦 Response data:`, data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error accepting friend request:', error);
+    throw error;
+  }
+    console.error('❌ Failed to parse response JSON:', error);
     throw new Error('Invalid response from server');
   }
   
   if (!response.ok) {
-    console.error('Accept friend request failed:', {
+    console.error('❌ Accept friend request failed:', {
       status: response.status,
       statusText: response.statusText,
-      data
+      data,
+      requestId
     });
-    throw new Error(data.message || `Server error: ${response.status}`);
+    
+    // Provide more specific error messages
+    if (response.status === 401) {
+      throw new Error('Authentication failed. Please login again.');
+    } else if (response.status === 403) {
+      throw new Error(data.message || 'You are not authorized to accept this request');
+    } else if (response.status === 404) {
+      throw new Error('Friend request not found. It may have been already processed.');
+    } else {
+      throw new Error(data.message || `Server error: ${response.status}`);
+    }
   }
   
+  console.log(`✅ Friend request ${requestId} accepted successfully`);
   return data;
 };
 

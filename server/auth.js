@@ -5,6 +5,7 @@ import Message from './models/Message.mjs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import process from 'process';
 
 // Load environment variables
 dotenv.config();
@@ -12,17 +13,31 @@ dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Connect to MongoDB
-const MONGO_URI = process.env.MONGO_URI ;
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+
+console.log('🔧 MongoDB URI available:', !!MONGO_URI);
+console.log('🔧 JWT Secret available:', !!JWT_SECRET);
+
+if (!MONGO_URI) {
+  console.error('❌ MONGODB_URI not found in environment variables');
+  process.exit(1);
+}
+
+if (!JWT_SECRET) {
+  console.error('❌ JWT_SECRET not found in environment variables');
+  process.exit(1);
+}
 
 mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+  serverSelectionTimeoutMS: 30000, // 30 seconds
+  socketTimeoutMS: 45000, // 45 seconds
 })
 .then(() => {
   console.log('✅ Connected to MongoDB successfully');
 })
 .catch((error) => {
   console.error('❌ MongoDB connection error:', error);
+  process.exit(1);
 });
 
 // Register
@@ -104,17 +119,65 @@ export async function updateProfile(req, res) {
 // Auth middleware
 export async function auth(req, res, next) {
   const header = req.headers['authorization'];
-  if (!header) return res.status(401).json({ error: 'No token' });
+  console.log(`🔐 Auth middleware - URL: ${req.path}, Method: ${req.method}`);
+  console.log(`🔐 Authorization header present: ${!!header}`);
+  
+  if (!header) {
+    console.error('❌ No authorization header provided');
+    return res.status(401).json({ error: 'No token provided' });
+  }
+  
   const token = header.split(' ')[1];
+  console.log(`🔐 Token present: ${!!token}`);
+  console.log(`🔐 Token preview: ${token ? token.substring(0, 20) + '...' : 'No token'}`);
+  
+  if (!token) {
+    console.error('❌ No token found in authorization header');
+    return res.status(401).json({ error: 'Invalid authorization format' });
+  }
+  
   try {
+    console.log(`🔐 Verifying token with JWT_SECRET...`);
+    console.log(`🔐 JWT_SECRET exists: ${!!JWT_SECRET}`);
+    console.log(`🔐 JWT_SECRET length: ${JWT_SECRET ? JWT_SECRET.length : 0}`);
+    
     const decoded = jwt.verify(token, JWT_SECRET);
+    console.log(`🔐 Token decoded successfully, user ID: ${decoded.id}`);
+    
     const user = await User.findById(decoded.id);
-    if (!user) return res.status(401).json({ error: 'User not found' });
+    if (!user) {
+      console.error(`❌ User not found for ID: ${decoded.id}`);
+      return res.status(401).json({ error: 'User not found' });
+    }
+    
+    console.log(`✅ Auth successful for user: ${user.username} (${user._id})`);
     req.user = user;
     req.userId = user._id; // Add userId for backward compatibility
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(401).json({ error: 'Invalid token' });
+    console.error('❌ Auth middleware error:', error.message);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Full error:', error);
+    
+    if (error.name === 'JsonWebTokenError') {
+      console.error('❌ Invalid token signature - possible JWT_SECRET mismatch');
+      return res.status(401).json({ 
+        error: 'Invalid token', 
+        details: 'Token signature verification failed',
+        suggestion: 'Please login again'
+      });
+    } else if (error.name === 'TokenExpiredError') {
+      console.error('❌ Token has expired');
+      return res.status(401).json({ 
+        error: 'Token expired',
+        suggestion: 'Please login again'
+      });
+    } else {
+      console.error('❌ Unknown token verification error');
+      return res.status(401).json({ 
+        error: 'Token verification failed',
+        suggestion: 'Please login again'
+      });
+    }
   }
 }

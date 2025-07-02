@@ -26,6 +26,7 @@ export default function Chat({ user, loading, onLogout }) {
   const [socketConnected, setSocketConnected] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
   // Convert friends to conversations format
   const conversationsList = friends.filter(friend => 
@@ -371,15 +372,44 @@ export default function Chat({ user, loading, onLogout }) {
   const handleAcceptFriend = async (requestId) => {
     try {
       console.log(`🤝 Accepting friend request: ${requestId}`);
+      console.log(`🔐 Current user:`, user);
+      console.log(`🔐 Auth token available:`, !!localStorage.getItem('token'));
+      
       await acceptFriendRequest(requestId);
+      
       // Remove notification and reload friends list
-      setNotifications(prev => prev.filter(n => n.id !== requestId));
-      loadFriendsAndNotifications(); // Reload to get updated friends list
+      setNotifications(prev => {
+        console.log(`📋 Removing notification ${requestId} from:`, prev.map(n => n.id));
+        return prev.filter(n => n.id !== requestId);
+      });
+      
+      // Reload to get updated friends list
+      await loadFriendsAndNotifications();
+      
       console.log(`✅ Friend request ${requestId} accepted successfully`);
       alert('Friend request accepted!');
     } catch (error) {
       console.error(`❌ Failed to accept friend request ${requestId}:`, error);
-      alert(`Error accepting friend request: ${error.message}`);
+      console.error(`❌ Error details:`, {
+        message: error.message,
+        stack: error.stack,
+        requestId,
+        user: user?.username
+      });
+      
+      // Provide more user-friendly error messages  
+      if (error.message.includes('Authentication failed')) {
+        alert('Session expired. Please login again.');
+        // Optionally redirect to login
+      } else if (error.message.includes('not authorized')) {
+        alert('You are not authorized to accept this request. It may have been sent by someone else.');
+      } else if (error.message.includes('not found')) {
+        alert('This friend request no longer exists. It may have been already processed.');
+        // Remove the notification since it's invalid
+        setNotifications(prev => prev.filter(n => n.id !== requestId));
+      } else {
+        alert(`Error accepting friend request: ${error.message}`);
+      }
     }
   };
 
@@ -398,6 +428,10 @@ export default function Chat({ user, loading, onLogout }) {
     setNotifications(prev => 
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     );
+  };
+
+  const toggleMobileSidebar = () => {
+    setIsMobileSidebarOpen(prev => !prev);
   };
 
   return (
@@ -422,6 +456,8 @@ export default function Chat({ user, loading, onLogout }) {
           onAddFriend={handleAddFriend}
           loading={loadingFriends}
           inputStyle={{ color: 'black' }}
+          isMobileOpen={isMobileSidebarOpen}
+          onMobileToggle={toggleMobileSidebar}
         />
         <ChatWindow
           messages={currentMessages}
@@ -437,6 +473,7 @@ export default function Chat({ user, loading, onLogout }) {
           onRejectFriend={handleRejectFriend}
           onMarkAsRead={handleMarkAsRead}
           inputStyle={{ color: 'black' }}
+          onMobileMenuToggle={toggleMobileSidebar}
         />
       </div>
     </div>
