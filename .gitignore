@@ -15,7 +15,7 @@ dist-ssr
 # Environment files
 .env
 .env.local
-.env.production
+# .env.production  # Comment this out so Vercel can use it
 server/.env
 server/.env.local
 server/.env.production
