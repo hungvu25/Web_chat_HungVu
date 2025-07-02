@@ -5,6 +5,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import process from 'process';
 import { registerUser, loginUser, auth, getProfile, updateProfile } from './auth.js';
 import User from './models/User.mjs';
 import Friendship from './models/Friendship.mjs';
