@@ -49,8 +49,8 @@ socket.on('connect', () => {
   isConnectionLogged = false;
 });
 
-socket.on('disconnect', (reason) => {
-  // console.log('🔌 Socket disconnected:', reason);
+socket.on('disconnect', () => {
+  // console.log('🔌 Socket disconnected');
   // Reset error logging on disconnect
   errorLogCount = 0;
 });

@@ -153,8 +153,8 @@ export default function Chat({ user, loading, onLogout }) {
         setSocketConnected(false);
       });
       
-      socket.on('disconnect', (reason) => {
-        // console.log('🔌 Socket disconnected:', reason);
+      socket.on('disconnect', () => {
+        // console.log('🔌 Socket disconnected');
         setSocketConnected(false);
       });
       

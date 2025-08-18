@@ -1,5 +1,4 @@
 // Simple Node.js + Express + Socket.IO backend for real-time chat
-
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -9,6 +8,7 @@ import process from 'process';
 import jwt from 'jsonwebtoken';
 import { registerUser, loginUser, auth, getProfile, updateProfile } from './auth.js';
 import User from './models/User.mjs';
+import Post from './models/Post.mjs';
 import Friendship from './models/Friendship.mjs';
 import Message from './models/Message.mjs';
 import Conversation from './models/Conversation.mjs';
@@ -17,6 +17,11 @@ import Conversation from './models/Conversation.mjs';
 dotenv.config();
 
 const app = express();
+import mongoose from 'mongoose';
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/chattera', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
 const server = http.createServer(app);
 
 // Configure allowed origins from environment
@@ -53,6 +58,79 @@ const io = new Server(server, {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// API: Lấy danh sách bài viết
+app.get('/api/posts', async (req, res) => {
+  try {
+    const posts = await Post.find().sort({ createdAt: -1 });
+    res.json(posts);
+  } catch {
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// API: Đăng bài viết mới
+app.post('/api/posts', async (req, res) => {
+  try {
+    const { author, content } = req.body;
+    if (!author || !content) return res.status(400).json({ error: 'Thiếu thông tin' });
+    const post = new Post({ author, content, likes: 0, shares: 0, comments: [] });
+    await post.save();
+    res.status(201).json(post);
+  } catch {
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// API: Like bài viết
+app.post('/api/posts/:id/like', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Không tìm thấy bài viết' });
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: 'Thiếu thông tin người dùng' });
+    // Toggle like
+    const idx = post.likedBy.indexOf(username);
+    if (idx === -1) {
+      post.likedBy.push(username);
+    } else {
+      post.likedBy.splice(idx, 1);
+    }
+    post.likes = post.likedBy.length;
+    await post.save();
+    res.json({ likes: post.likes, liked: idx === -1 });
+  } catch {
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// API: Share bài viết
+app.post('/api/posts/:id/share', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Không tìm thấy bài viết' });
+    post.shares += 1;
+    await post.save();
+    res.json({ shares: post.shares });
+  } catch {
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// API: Bình luận bài viết
+app.post('/api/posts/:id/comment', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Không tìm thấy bài viết' });
+    const { user, text } = req.body;
+    if (!user || !text) return res.status(400).json({ error: 'Thiếu thông tin' });
+    post.comments.push({ user, text });
+    await post.save();
+    res.json({ comments: post.comments });
+  } catch {
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
