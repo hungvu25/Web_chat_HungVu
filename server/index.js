@@ -26,8 +26,9 @@ const server = http.createServer(app);
 
 // Configure allowed origins from environment
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim().toLowerCase())
   : ['http://localhost:5173', 'http://localhost:3000'];
+const NGROK_SUFFIX = '.ngrok-free.app';
 
 console.log('🔧 Configured CORS origins:', allowedOrigins);
 console.log('🌍 NODE_ENV:', process.env.NODE_ENV);
@@ -38,8 +39,12 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Check if the origin is in the allowed list
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    const normalizedOrigin = origin.toLowerCase();
+    const isAllowedExplicitly = allowedOrigins.includes(normalizedOrigin);
+    const isNgrok = normalizedOrigin.endsWith(NGROK_SUFFIX);
+    
+    // Check if the origin is in the allowed list or matches ngrok wildcard
+    if (isAllowedExplicitly || isNgrok) {
       callback(null, true);
     } else {
       console.log('❌ CORS blocked origin:', origin);
